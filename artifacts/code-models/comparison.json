@@ -1,0 +1,305 @@
+{
+  "dataset": "C:\\Users\\ADMIN\\OneDrive\\M\u00e1y t\u00ednh\\tailieu\\2026.1\\Project 1\\project\\Code_Analysis\\Dataset\\codenet_verdicts.csv",
+  "results": [
+    {
+      "model": "tfidf_logistic_regression",
+      "dataset": "C:\\Users\\ADMIN\\OneDrive\\M\u00e1y t\u00ednh\\tailieu\\2026.1\\Project 1\\project\\Code_Analysis\\Dataset\\codenet_verdicts.csv",
+      "sample_count": 3999,
+      "train_count": 3199,
+      "test_count": 800,
+      "labels": [
+        "accepted",
+        "compile_error",
+        "memory_limit_exceeded",
+        "output_limit_exceeded",
+        "presentation_error",
+        "runtime_error",
+        "time_limit_exceeded",
+        "wrong_answer"
+      ],
+      "accuracy": 0.3975,
+      "macro_f1": 0.3796,
+      "confusion_matrix": [
+        [
+          21,
+          15,
+          11,
+          11,
+          8,
+          12,
+          10,
+          12
+        ],
+        [
+          10,
+          30,
+          8,
+          2,
+          22,
+          7,
+          10,
+          11
+        ],
+        [
+          1,
+          1,
+          71,
+          5,
+          2,
+          10,
+          5,
+          5
+        ],
+        [
+          11,
+          3,
+          8,
+          48,
+          7,
+          10,
+          6,
+          7
+        ],
+        [
+          3,
+          6,
+          5,
+          1,
+          78,
+          6,
+          1,
+          0
+        ],
+        [
+          15,
+          6,
+          17,
+          5,
+          2,
+          24,
+          21,
+          10
+        ],
+        [
+          10,
+          4,
+          19,
+          10,
+          7,
+          10,
+          29,
+          11
+        ],
+        [
+          13,
+          16,
+          12,
+          10,
+          11,
+          17,
+          4,
+          17
+        ]
+      ],
+      "classification_report": {
+        "accepted": {
+          "precision": 0.25,
+          "recall": 0.21,
+          "f1-score": 0.22826086956521738,
+          "support": 100.0
+        },
+        "compile_error": {
+          "precision": 0.37037037037037035,
+          "recall": 0.3,
+          "f1-score": 0.3314917127071823,
+          "support": 100.0
+        },
+        "memory_limit_exceeded": {
+          "precision": 0.47019867549668876,
+          "recall": 0.71,
+          "f1-score": 0.5657370517928287,
+          "support": 100.0
+        },
+        "output_limit_exceeded": {
+          "precision": 0.5217391304347826,
+          "recall": 0.48,
+          "f1-score": 0.5,
+          "support": 100.0
+        },
+        "presentation_error": {
+          "precision": 0.5693430656934306,
+          "recall": 0.78,
+          "f1-score": 0.6582278481012658,
+          "support": 100.0
+        },
+        "runtime_error": {
+          "precision": 0.25,
+          "recall": 0.24,
+          "f1-score": 0.24489795918367346,
+          "support": 100.0
+        },
+        "time_limit_exceeded": {
+          "precision": 0.3372093023255814,
+          "recall": 0.29,
+          "f1-score": 0.3118279569892473,
+          "support": 100.0
+        },
+        "wrong_answer": {
+          "precision": 0.2328767123287671,
+          "recall": 0.17,
+          "f1-score": 0.19653179190751446,
+          "support": 100.0
+        },
+        "accuracy": 0.3975,
+        "macro avg": {
+          "precision": 0.3752171570812026,
+          "recall": 0.39749999999999996,
+          "f1-score": 0.37962189878086616,
+          "support": 800.0
+        },
+        "weighted avg": {
+          "precision": 0.3752171570812026,
+          "recall": 0.3975,
+          "f1-score": 0.37962189878086616,
+          "support": 800.0
+        }
+      }
+    },
+    {
+      "model": "codebert",
+      "accuracy": 0.2904,
+      "macro_f1": 0.2662,
+      "classification_report": {
+        "accepted": {
+          "precision": 0.3333333333333333,
+          "recall": 0.03508771929824561,
+          "f1-score": 0.06349206349206349,
+          "support": 114.0
+        },
+        "compile_error": {
+          "precision": 0.34210526315789475,
+          "recall": 0.35135135135135137,
+          "f1-score": 0.3466666666666667,
+          "support": 111.0
+        },
+        "memory_limit_exceeded": {
+          "precision": 0.38095238095238093,
+          "recall": 0.4948453608247423,
+          "f1-score": 0.4304932735426009,
+          "support": 97.0
+        },
+        "output_limit_exceeded": {
+          "precision": 0.22929936305732485,
+          "recall": 0.42857142857142855,
+          "f1-score": 0.2987551867219917,
+          "support": 84.0
+        },
+        "presentation_error": {
+          "precision": 0.6956521739130435,
+          "recall": 0.47058823529411764,
+          "f1-score": 0.5614035087719298,
+          "support": 102.0
+        },
+        "runtime_error": {
+          "precision": 0.18518518518518517,
+          "recall": 0.04854368932038835,
+          "f1-score": 0.07692307692307693,
+          "support": 103.0
+        },
+        "time_limit_exceeded": {
+          "precision": 0.14285714285714285,
+          "recall": 0.07792207792207792,
+          "f1-score": 0.10084033613445378,
+          "support": 77.0
+        },
+        "wrong_answer": {
+          "precision": 0.17647058823529413,
+          "recall": 0.4329896907216495,
+          "f1-score": 0.2507462686567164,
+          "support": 97.0
+        },
+        "accuracy": 0.29044585987261146,
+        "macro avg": {
+          "precision": 0.31073192883644996,
+          "recall": 0.2924874441630002,
+          "f1-score": 0.2661650476136874,
+          "support": 785.0
+        },
+        "weighted avg": {
+          "precision": 0.31889866819331286,
+          "recall": 0.29044585987261146,
+          "f1-score": 0.2673180983646408,
+          "support": 785.0
+        }
+      }
+    },
+    {
+      "model": "astnn",
+      "accuracy": 0.3503,
+      "macro_f1": 0.3254,
+      "classification_report": {
+        "accepted": {
+          "precision": 0.42857142857142855,
+          "recall": 0.10526315789473684,
+          "f1-score": 0.16901408450704225,
+          "support": 114.0
+        },
+        "compile_error": {
+          "precision": 0.358695652173913,
+          "recall": 0.2972972972972973,
+          "f1-score": 0.3251231527093596,
+          "support": 111.0
+        },
+        "memory_limit_exceeded": {
+          "precision": 0.47297297297297297,
+          "recall": 0.7216494845360825,
+          "f1-score": 0.5714285714285714,
+          "support": 97.0
+        },
+        "output_limit_exceeded": {
+          "precision": 0.32620320855614976,
+          "recall": 0.7261904761904762,
+          "f1-score": 0.45018450184501846,
+          "support": 84.0
+        },
+        "presentation_error": {
+          "precision": 0.5365853658536586,
+          "recall": 0.21568627450980393,
+          "f1-score": 0.3076923076923077,
+          "support": 102.0
+        },
+        "runtime_error": {
+          "precision": 0.3235294117647059,
+          "recall": 0.10679611650485436,
+          "f1-score": 0.16058394160583941,
+          "support": 103.0
+        },
+        "time_limit_exceeded": {
+          "precision": 0.2727272727272727,
+          "recall": 0.42857142857142855,
+          "f1-score": 0.3333333333333333,
+          "support": 77.0
+        },
+        "wrong_answer": {
+          "precision": 0.2462686567164179,
+          "recall": 0.3402061855670103,
+          "f1-score": 0.2857142857142857,
+          "support": 97.0
+        },
+        "accuracy": 0.3503184713375796,
+        "macro avg": {
+          "precision": 0.3706942461670649,
+          "recall": 0.36770755263396127,
+          "f1-score": 0.32538427235446976,
+          "support": 785.0
+        },
+        "weighted avg": {
+          "precision": 0.37566255359983763,
+          "recall": 0.3503184713375796,
+          "f1-score": 0.3183516674128203,
+          "support": 785.0
+        }
+      }
+    }
+  ]
+}

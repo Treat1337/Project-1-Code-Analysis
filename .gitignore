@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.streamlit/
+.env
+*.py[cod]
+
+# Project CodeNet source submissions are too large for a normal Git repository.
+Dataset/Project_CodeNet/data/
+Dataset/Project_CodeNet/metadata/
+Dataset/Project_CodeNet/derived/benchmarks/
+Dataset/Project_CodeNet/derived/duplicates/
+artifacts/code-models/astnn/
+artifacts/code-models/classifier/
+artifacts/code-models/codebert/

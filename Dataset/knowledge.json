@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Lỗi biên dịch C++",
+    "content": "Compile Error xảy ra khi trình biên dịch không thể chuyển mã nguồn thành chương trình. Bắt đầu đọc thông báo lỗi đầu tiên, kiểm tra tên biến và kiểu dữ liệu, dấu chấm phẩy, ngoặc, khai báo thư viện và vị trí dòng được báo. Một lỗi cú pháp ban đầu có thể gây ra nhiều thông báo dây chuyền."
+  },
+  {
+    "title": "Sai kết quả và kiểm thử trường hợp biên",
+    "content": "Wrong Answer nghĩa là chương trình đã chạy nhưng đầu ra khác đáp án mong đợi trên test. Kiểm tra cách đọc input, định dạng output, điều kiện biên như n bằng 0 hoặc 1, số âm, giá trị lớn, phần tử đầu/cuối và các trường hợp trùng lặp. So sánh từng bước với một test nhỏ."
+  },
+  {
+    "title": "Lỗi runtime trong C++",
+    "content": "Runtime Error là chương trình kết thúc bất thường khi đang chạy. Các nguyên nhân thường gặp gồm truy cập mảng ngoài phạm vi, dùng con trỏ không hợp lệ, chia cho 0, đệ quy quá sâu hoặc giả định input không đúng. Thu hẹp lỗi bằng test nhỏ và kiểm tra chỉ số trước khi truy cập."
+  },
+  {
+    "title": "Tối ưu thuật toán khi bị TLE",
+    "content": "Time Limit Exceeded xảy ra khi chương trình vượt thời gian cho phép. Ước lượng độ phức tạp theo kích thước input: vòng lặp lồng nhau có thể là O(n^2), sắp xếp thường là O(n log n). Chọn cấu trúc dữ liệu phù hợp và tránh tính toán lặp lại; đo thời gian trên input lớn đại diện."
+  },
+  {
+    "title": "Đọc và xử lý dữ liệu C++",
+    "content": "Với input lớn, có thể dùng ios::sync_with_stdio(false) và cin.tie(nullptr). Đọc đúng số lượng token và kiểu dữ liệu; dùng long long khi tổng hoặc phép nhân có thể vượt giới hạn int. Output chuẩn chỉ nên chứa đáp án, không thêm lời nhắc tương tác nếu đề yêu cầu định dạng chính xác."
+  },
+  {
+    "title": "Giới hạn kết luận từ test",
+    "content": "Vượt qua toàn bộ test được cung cấp chỉ chứng minh chương trình đúng trên các test đó, không đảm bảo đúng với mọi input. Verdict cần dựa trên compiler và kết quả thực thi có đáp án chuẩn. Mô hình học máy chỉ là dự đoán thử nghiệm, không thay thế kết quả chạy."
+  }
+]
+
