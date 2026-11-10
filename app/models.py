@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
@@ -43,6 +43,7 @@ class FeedbackRequest(BaseModel):
     diagnostic: str = Field(default="", max_length=8192)
     static_analysis: str = Field(default="", max_length=8192)
     learning_context: str = Field(default="", max_length=4000)
+    tests: list[dict[str, Any]] = Field(default_factory=list, max_length=MAX_TEST_CASES)
 
     @field_validator("code")
     @classmethod

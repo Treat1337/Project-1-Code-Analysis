@@ -16,6 +16,7 @@ from app.services.feedback import LLMProviderError, explain, load_knowledge_base
 from app.services.knowledge_tracing import TestCaseInformedKnowledgeTracer
 from app.services.localization import localize_errors
 from app.services.misconception_detection import MisconceptionPatternDetector
+from app.services.output_diff import enrich_test_results
 from app.services.retrieval import KnowledgeBase
 from app.services.runner import RunnerFailure, RunnerUnavailable, analyze_cpp, runner_status
 
@@ -80,6 +81,11 @@ def analyze(request: AnalyzeRequest) -> dict[str, object]:
                 "problem_id": request.problem_id,
                 "reason": str(exc),
             }
+    enriched_tests = enrich_test_results(
+        [test.model_dump() for test in request.test_cases],
+        result.get("tests", []),
+    )
+    result["tests"] = enriched_tests
     try:
         feedback = explain(
             request.code,
@@ -87,6 +93,7 @@ def analyze(request: AnalyzeRequest) -> dict[str, object]:
             diagnostic,
             knowledge_base,
             static_analysis=static_analysis,
+            tests=enriched_tests,
         )
     except LLMProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
@@ -114,6 +121,7 @@ def feedback(request: FeedbackRequest) -> dict[str, object]:
             knowledge_base,
             static_analysis=request.static_analysis,
             learning_context=request.learning_context,
+            tests=request.tests,
         )
     except LLMProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

@@ -14,6 +14,7 @@ from app.services.codenet_retrieval import CodeNetSimilarityIndex
 from app.services.knowledge_tracing import TestCaseInformedKnowledgeTracer
 from app.services.localization import localize_errors
 from app.services.misconception_detection import MisconceptionPatternDetector
+from app.services.output_diff import compare_output, enrich_test_results
 from app.services.problem_catalog import (
     _StatementParser,
     extract_sample_test_cases,
@@ -96,6 +97,29 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(result["compiler_diagnostics"][0]["column"], 4)
         self.assertEqual(result["compiler_diagnostics"][1]["evidence"], "static_analysis")
         self.assertEqual(result["failing_test_cases"], [{"case": 2, "status": "WRONG_ANSWER"}])
+
+    def test_output_diff_finds_first_mismatching_token(self) -> None:
+        result = compare_output("sum = 4\n", "sum = 5\n")
+
+        self.assertEqual(result["first_difference"]["token_index"], 3)
+        self.assertEqual(result["first_difference"]["actual"], "4")
+        self.assertEqual(result["first_difference"]["expected"], "5")
+
+    def test_enriches_wrong_answer_with_input_and_output_evidence(self) -> None:
+        result = enrich_test_results(
+            [{"stdin": "2 2\n", "expected_stdout": "5\n"}],
+            [
+                {
+                    "case": 1,
+                    "status": "WRONG_ANSWER",
+                    "stdout": "4\n",
+                    "expected_stdout": "5\n",
+                }
+            ],
+        )
+
+        self.assertEqual(result[0]["stdin"], "2 2\n")
+        self.assertEqual(result[0]["output_diff"]["first_difference"]["actual"], "4")
 
 
 class ProblemStatementTests(unittest.TestCase):

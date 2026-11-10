@@ -354,6 +354,21 @@ with right:
             )
             st.markdown("**Giải thích và gợi ý**")
             st.write(feedback.get("explanation", "Chưa có phản hồi từ dịch vụ phân tích."))
+            evidence = feedback.get("evidence", {})
+            failing_tests = evidence.get("failing_tests", [])
+            if failing_tests:
+                st.markdown("**Bằng chứng runner dùng để kết luận**")
+                for test in failing_tests:
+                    case = test.get("case", "?")
+                    st.caption(f"Test {case} · {test.get('status', 'UNKNOWN')}")
+                    if test.get("stdin") is not None:
+                        st.code(test["stdin"] or "(input rỗng)", language="text")
+                    if test.get("output_diff", {}).get("first_difference"):
+                        first = test["output_diff"]["first_difference"]
+                        st.write(
+                            f"Khác biệt đầu tiên ở token {first['token_index']}: "
+                            f"`{first['actual']}` → cần `{first['expected']}`"
+                        )
             hints = {
                 "COMPILE_ERROR": [
                     "Đọc thông báo lỗi đầu tiên và xác định tên tệp, dòng được nêu.",

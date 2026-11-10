@@ -90,7 +90,9 @@ Ví dụ request:
 
 Các verdict thực thi: `COMPILE_ERROR`, `WRONG_ANSWER`, `RUNTIME_ERROR`, `TIME_LIMIT_EXCEEDED`, `ACCEPTED`. Verdict `ACCEPTED` chỉ áp dụng với test được gửi.
 
-Khi có `problem_id`, `/analyze` đọc metadata CodeNet của đúng bài, lập chỉ mục TF-IDF theo ký tự cho tối đa 100 submission mỗi verdict và trả `code_retrieval` gồm top-K code tương tự cùng submission gần nhất theo từng verdict tìm thấy. Chỉ mục từng bài được cache trong tiến trình API; khởi động lại API để nạp thay đổi dataset. File code lớn hơn 64 KiB bị bỏ qua. Điểm tương đồng là tín hiệu từ cấu trúc ký tự, không chứng minh tính đúng đắn. Phản hồi `error_localization` trích dòng/cột compiler báo và test thất bại; test thất bại không xác định chính xác dòng code gây lỗi. Metadata CodeNet hiện dùng ở đây không chứa kết quả từng test, nên hệ thống không tuyên bố đối chiếu được test phân biệt giữa submission Accepted và sai.
+Khi có `problem_id`, `/analyze` đọc metadata CodeNet của đúng bài, lập chỉ mục TF-IDF theo ký tự cho tối đa 100 submission mỗi verdict và trả `code_retrieval` gồm top-K code tương tự cùng submission gần nhất theo từng verdict tìm thấy. Chỉ mục từng bài được cache trong tiến trình API; khởi động lại API để nạp thay đổi dataset. File code lớn hơn 64 KiB bị bỏ qua. Điểm tương đồng là tín hiệu từ cấu trúc ký tự, không chứng minh tính đúng đắn.
+
+Feedback của `/analyze` không còn chỉ dựa trên câu `Output did not match...`. Runner trả kèm input, output thực tế, output mong đợi và `output_diff.first_difference` cho mỗi test `WRONG_ANSWER`; feedback local và LLM dùng các dữ liệu này để nêu khác biệt đầu tiên. Đây là bằng chứng về test làm lộ lỗi, không phải bằng chứng chắc chắn về dòng source gây lỗi. Nếu chưa có compiler location hoặc công cụ fault localization, hệ thống phải nói rõ chưa thể kết luận dòng sai thay vì tự đoán. `error_localization` vẫn trích dòng/cột compiler báo và các test thất bại. Metadata CodeNet hiện dùng ở đây không chứa kết quả từng test, nên hệ thống không tuyên bố đối chiếu được test phân biệt giữa submission Accepted và sai.
 
 ### Truy vết tiến trình và phát hiện mẫu lỗi
 
