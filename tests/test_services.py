@@ -1,7 +1,9 @@
 import csv
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -23,6 +25,7 @@ from app.services.problem_catalog import (
 from app.services.retrieval import KnowledgeBase
 from app.services.runner import RunnerUnavailable, analyze_cpp
 from scripts.prepare_codenet_dataset import export_dataset
+from scripts.codenet_dataset import load_examples as load_codenet_examples
 
 
 class RetrievalTests(unittest.TestCase):
@@ -293,6 +296,34 @@ class MisconceptionDetectionTests(unittest.TestCase):
 
 
 class CodeNetDatasetTests(unittest.TestCase):
+    def test_loads_direct_dataset_in_folder_batches(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            metadata = root / "metadata"
+            data = root / "data"
+            metadata.mkdir()
+            data.mkdir()
+            for index in range(100):
+                (metadata / f"p{index:05d}.csv").write_text(
+                    "submission_id,problem_id,language,filename_ext,status\n",
+                    encoding="utf-8",
+                )
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                examples = load_codenet_examples(
+                    root,
+                    max_per_label=500,
+                    folder_fraction=0.5,
+                    folder_batch_size=50,
+                    seed=42,
+                )
+
+            self.assertEqual(examples, [])
+            logs = output.getvalue()
+            self.assertIn("selected 50/100", logs)
+            self.assertIn("Data pushed | 50/50 folders", logs)
+
     def test_exports_cpp_statuses_and_problem_ids(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -312,7 +343,14 @@ class CodeNetDatasetTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            counts = export_dataset(metadata, data, output, max_per_label=10, seed=42)
+            counts = export_dataset(
+                metadata,
+                data,
+                output,
+                max_per_label=0,
+                fraction=1.0,
+                seed=42,
+            )
 
             self.assertEqual(counts, {"accepted": 1, "compile_error": 1})
             with output.open(encoding="utf-8", newline="") as source:

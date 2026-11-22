@@ -3,8 +3,15 @@ from __future__ import annotations
 import argparse
 import csv
 import random
+import sys
 from collections import defaultdict
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.codenet_dataset import _load_problem_context
 
 
 STATUS_LABELS = {
@@ -24,10 +31,13 @@ def export_dataset(
     data_dir: Path,
     destination: Path,
     max_per_label: int,
+    fraction: float,
     seed: int,
 ) -> dict[str, int]:
-    if max_per_label < 1:
-        raise ValueError("max_per_label must be at least 1")
+    if max_per_label < 0:
+        raise ValueError("max_per_label must be non-negative")
+    if not 0 < fraction <= 1:
+        raise ValueError("fraction must be greater than 0 and at most 1")
     rng = random.Random(seed)
     samples: dict[str, list[tuple[str, str, Path]]] = defaultdict(list)
     seen: dict[str, int] = defaultdict(int)
@@ -50,9 +60,11 @@ def export_dataset(
                 code_path = data_dir / problem_id / "C++" / f"{submission_id}.{extension}"
 
                 seen[label] += 1
+                if rng.random() >= fraction:
+                    continue
                 sample = (problem_id, label, code_path)
                 bucket = samples[label]
-                if len(bucket) < max_per_label:
+                if max_per_label == 0 or len(bucket) < max_per_label:
                     bucket.append(sample)
                 else:
                     replacement = rng.randrange(seen[label])
@@ -75,17 +87,31 @@ def export_dataset(
     with destination.open("w", encoding="utf-8", newline="") as output:
         writer = csv.DictWriter(
             output,
-            fieldnames=["code", "label", "compiler_message", "problem_id"],
+            fieldnames=[
+                "code",
+                "label",
+                "compiler_message",
+                "problem_id",
+                "problem_description",
+                "sample_input",
+                "sample_output",
+            ],
         )
         writer.writeheader()
         for label in sorted(samples):
             for problem_id, sample_label, code_path in samples[label]:
+                description, sample_input, sample_output = _load_problem_context(
+                    metadata_dir.parent, problem_id
+                )
                 writer.writerow(
                     {
                         "code": code_path.read_text(encoding="utf-8", errors="replace"),
                         "label": sample_label,
                         "compiler_message": "",
                         "problem_id": problem_id,
+                        "problem_description": description,
+                        "sample_input": sample_input,
+                        "sample_output": sample_output,
                     }
                 )
             counts[label] = len(samples[label])
@@ -93,7 +119,7 @@ def export_dataset(
 
 
 def main() -> None:
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = PROJECT_ROOT
     parser = argparse.ArgumentParser(
         description="Export a reproducible, balanced C++ verdict dataset from Project CodeNet."
     )
@@ -103,7 +129,18 @@ def main() -> None:
         default=project_root / "Dataset" / "Project_CodeNet",
     )
     parser.add_argument("--output", type=Path, default=project_root / "Dataset" / "codenet_verdicts.csv")
-    parser.add_argument("--max-per-label", type=int, default=500)
+    parser.add_argument(
+        "--max-per-label",
+        type=int,
+        default=500,
+        help="Maximum samples per label; use 0 to include every eligible submission",
+    )
+    parser.add_argument(
+        "--fraction",
+        type=float,
+        default=1.0,
+        help="Random fraction of eligible submissions to keep (for example 0.5)",
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -112,6 +149,7 @@ def main() -> None:
         args.project_codenet / "data",
         args.output,
         args.max_per_label,
+        args.fraction,
         args.seed,
     )
     print(f"Wrote {sum(counts.values())} examples to {args.output}")

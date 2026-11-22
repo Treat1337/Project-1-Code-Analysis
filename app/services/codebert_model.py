@@ -5,6 +5,7 @@ from typing import Any
 
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from scripts.codenet_dataset import format_model_text
 
 
 CODEBERT_MODEL = "microsoft/codebert-base"
@@ -20,9 +21,18 @@ class TrainedCodeBERTModel:
         self.model.to(device)
         self.model.eval()
 
-    def predict(self, code: str, compiler_message: str = "") -> dict[str, Any]:
+    def predict(
+        self,
+        code: str,
+        compiler_message: str = "",
+        problem_description: str = "",
+        sample_input: str = "",
+        sample_output: str = "",
+    ) -> dict[str, Any]:
         with torch.no_grad():
-            text = f"{code}\n{compiler_message}".strip()
+            text = format_model_text(
+                code, compiler_message, problem_description, sample_input, sample_output
+            )
             inputs = self.tokenizer(
                 text,
                 return_tensors="pt",

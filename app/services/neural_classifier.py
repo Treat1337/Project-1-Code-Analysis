@@ -26,5 +26,14 @@ class TrainedCodeClassifier:
         else:
             raise ValueError(f"Unsupported neural model type: {model_type}")
 
-    def predict(self, code: str, compiler_message: str = "") -> dict[str, Any]:
-        return self.model.predict(code, compiler_message)
+    def predict(
+        self,
+        code: str,
+        compiler_message: str = "",
+        problem_description: str = "",
+        sample_input: str = "",
+        sample_output: str = "",
+    ) -> dict[str, Any]:
+        return self.model.predict(
+            code, compiler_message, problem_description, sample_input, sample_output
+        )

@@ -17,6 +17,13 @@ MODELS = [
     ("CodeBERT", "train_codebert.py"),
     ("ASTNN", "train_astnn.py"),
 ]
+DEFAULT_DATASETS = (
+    PROJECT_ROOT / "Dataset" / "Project_CodeNet",
+    PROJECT_ROOT / "Dataset" / "codenet_verdicts_50pct_compiler.csv",
+    PROJECT_ROOT / "Dataset" / "codenet_verdicts_50pct.csv",
+    PROJECT_ROOT / "Dataset" / "codenet_verdicts_compiler.csv",
+    PROJECT_ROOT / "Dataset" / "codenet_verdicts.csv",
+)
 ML_DEPENDENCIES = {
     "torch": "torch",
     "transformers": "transformers",
@@ -33,25 +40,69 @@ def missing_ml_dependencies() -> list[str]:
     ]
 
 
+def default_dataset() -> Path:
+    for dataset_path in DEFAULT_DATASETS:
+        if dataset_path.is_file() or dataset_path.is_dir():
+            return dataset_path
+    return DEFAULT_DATASETS[0]
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Train each trainable code model sequentially.")
-    parser.add_argument("--dataset", type=Path, default=PROJECT_ROOT / "Dataset" / "codenet_verdicts.csv")
+    parser = argparse.ArgumentParser(
+        description="Train all trainable code models sequentially on the GPU."
+    )
+    parser.add_argument(
+        "--dataset",
+        type=Path,
+        default=None,
+        help="CSV or Project_CodeNet directory; defaults to the directory when available",
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=PROJECT_ROOT / "artifacts" / "code-models",
     )
     parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--max-length", type=int, default=256)
-    parser.add_argument("--device", default=None, help="cuda hoặc cpu; mặc định tự chọn")
+    parser.add_argument("--batch-size", type=int, default=2)
+    parser.add_argument("--max-length", type=int, default=512)
+    parser.add_argument(
+        "--device",
+        choices=["cuda", "cpu"],
+        default="cuda",
+        help="Training device; defaults to CUDA",
+    )
+    parser.add_argument(
+        "--folder-fraction",
+        type=float,
+        default=1.0,
+        help="Fraction of Project_CodeNet metadata folders to use (default: 1.0)",
+    )
+    parser.add_argument(
+        "--folder-batch-size",
+        type=int,
+        default=50,
+        help="Number of folders loaded and reported per batch (default: 50)",
+    )
+    parser.add_argument(
+        "--io-workers",
+        type=int,
+        default=8,
+        help="Parallel workers for reading metadata and source files (default: 8)",
+    )
+    parser.add_argument(
+        "--max-per-label",
+        type=int,
+        default=0,
+        help="Maximum samples per label for a CodeNet directory; 0 means no cap",
+    )
     args = parser.parse_args()
+    args.dataset = args.dataset or default_dataset()
     args.dataset = args.dataset.resolve()
     args.output_dir = args.output_dir.resolve()
-    if not args.dataset.is_file():
+    if not args.dataset.is_file() and not args.dataset.is_dir():
         parser.error(
             f"Không tìm thấy {args.dataset}; chạy trước "
-            "'python scripts\\prepare_codenet_dataset.py'."
+            "'python scripts\\prepare_codenet_dataset.py' hoặc truyền --dataset."
         )
     missing_dependencies = missing_ml_dependencies()
     if missing_dependencies:
@@ -61,6 +112,18 @@ def main() -> int:
             f"Cài bằng đúng Python này: \"{sys.executable}\" -m pip install -r "
             f"\"{requirements}\"."
         )
+    import torch
+
+    if args.device == "cuda" and not torch.cuda.is_available():
+        parser.error(
+            "CUDA được yêu cầu nhưng PyTorch không nhìn thấy GPU. "
+            "Trên Colab hãy chọn Runtime > Change runtime type > T4 GPU; "
+            "trên local hãy cài PyTorch bản CUDA."
+        )
+    if args.device == "cuda":
+        print(f"GPU: {torch.cuda.get_device_name(0)}", flush=True)
+    print(f"Dataset: {args.dataset}", flush=True)
+    print(f"Output: {args.output_dir}", flush=True)
 
     common_args = [
         "--dataset",
@@ -68,6 +131,19 @@ def main() -> int:
         "--output-dir",
         str(args.output_dir),
     ]
+    if args.dataset.is_dir():
+        common_args.extend(
+            [
+                "--folder-fraction",
+                str(args.folder_fraction),
+                "--folder-batch-size",
+                str(args.folder_batch_size),
+                "--io-workers",
+                str(args.io_workers),
+                "--max-per-label",
+                str(args.max_per_label),
+            ]
+        )
     neural_args = [
         "--epochs",
         str(args.epochs),

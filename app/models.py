@@ -31,6 +31,25 @@ class AnalyzeRequest(BaseModel):
         return value
 
 
+class RunRequest(BaseModel):
+    code: str = Field(min_length=1)
+    stdin: str = ""
+
+    @field_validator("code")
+    @classmethod
+    def validate_code_size(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > MAX_CODE_BYTES:
+            raise ValueError(f"Code must not exceed {MAX_CODE_BYTES} bytes")
+        return value
+
+    @field_validator("stdin")
+    @classmethod
+    def validate_stdin_size(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > MAX_INPUT_BYTES:
+            raise ValueError(f"Stdin must not exceed {MAX_INPUT_BYTES} bytes")
+        return value
+
+
 class FeedbackRequest(BaseModel):
     code: str = Field(min_length=1, max_length=MAX_CODE_BYTES)
     verdict: Literal[
@@ -43,6 +62,7 @@ class FeedbackRequest(BaseModel):
     diagnostic: str = Field(default="", max_length=8192)
     static_analysis: str = Field(default="", max_length=8192)
     learning_context: str = Field(default="", max_length=4000)
+    model_predictions: dict[str, object] = Field(default_factory=dict)
 
     @field_validator("code")
     @classmethod
@@ -55,6 +75,9 @@ class FeedbackRequest(BaseModel):
 class ClassifyRequest(BaseModel):
     code: str = Field(min_length=1, max_length=MAX_CODE_BYTES)
     compiler_message: str = Field(default="", max_length=8192)
+    problem_description: str = Field(default="", max_length=32768)
+    sample_input: str = Field(default="", max_length=16384)
+    sample_output: str = Field(default="", max_length=16384)
 
     @field_validator("code")
     @classmethod

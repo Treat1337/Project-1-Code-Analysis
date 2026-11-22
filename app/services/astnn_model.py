@@ -177,7 +177,14 @@ class TrainedASTNNModel:
         self.model.to(device)
         self.model.eval()
 
-    def predict(self, code: str, _compiler_message: str = "") -> dict[str, Any]:
+    def predict(
+        self,
+        code: str,
+        _compiler_message: str = "",
+        _problem_description: str = "",
+        _sample_input: str = "",
+        _sample_output: str = "",
+    ) -> dict[str, Any]:
         with torch.no_grad():
             trees = encode_ast(code, self.vocabulary, self.parser)
             logits = self.model([trees])[0]

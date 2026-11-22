@@ -90,7 +90,9 @@ Ví dụ request:
 
 Các verdict thực thi: `COMPILE_ERROR`, `WRONG_ANSWER`, `RUNTIME_ERROR`, `TIME_LIMIT_EXCEEDED`, `ACCEPTED`. Verdict `ACCEPTED` chỉ áp dụng với test được gửi.
 
-Khi có `problem_id`, `/analyze` đọc metadata CodeNet của đúng bài, lập chỉ mục TF-IDF theo ký tự cho tối đa 100 submission mỗi verdict và trả `code_retrieval` gồm top-K code tương tự cùng submission gần nhất theo từng verdict tìm thấy. Chỉ mục từng bài được cache trong tiến trình API; khởi động lại API để nạp thay đổi dataset. File code lớn hơn 64 KiB bị bỏ qua. Điểm tương đồng là tín hiệu từ cấu trúc ký tự, không chứng minh tính đúng đắn. Phản hồi `error_localization` trích dòng/cột compiler báo và test thất bại; test thất bại không xác định chính xác dòng code gây lỗi. Metadata CodeNet hiện dùng ở đây không chứa kết quả từng test, nên hệ thống không tuyên bố đối chiếu được test phân biệt giữa submission Accepted và sai.
+Khi có `problem_id`, `/analyze` đọc metadata CodeNet của đúng bài, lập chỉ mục TF-IDF theo ký tự cho tối đa 100 submission mỗi verdict và trả `code_retrieval` gồm top-K code tương tự cùng submission gần nhất theo từng verdict tìm thấy. Chỉ mục từng bài được cache trong tiến trình API; khởi động lại API để nạp thay đổi dataset. File code lớn hơn 64 KiB bị bỏ qua. Điểm tương đồng là tín hiệu từ cấu trúc ký tự, không chứng minh tính đúng đắn.
+
+Feedback của `/analyze` không còn chỉ dựa trên câu `Output did not match...`. Runner trả kèm input, output thực tế, output mong đợi và `output_diff.first_difference` cho mỗi test `WRONG_ANSWER`; feedback local và LLM dùng các dữ liệu này để nêu khác biệt đầu tiên. Đây là bằng chứng về test làm lộ lỗi, không phải bằng chứng chắc chắn về dòng source gây lỗi. Nếu chưa có compiler location hoặc công cụ fault localization, hệ thống phải nói rõ chưa thể kết luận dòng sai thay vì tự đoán. `error_localization` vẫn trích dòng/cột compiler báo và các test thất bại. Metadata CodeNet hiện dùng ở đây không chứa kết quả từng test, nên hệ thống không tuyên bố đối chiếu được test phân biệt giữa submission Accepted và sai.
 
 ### Truy vết tiến trình và phát hiện mẫu lỗi
 
@@ -120,11 +122,50 @@ Classifier dùng TF-IDF ký tự + Logistic Regression. Khi có dữ liệu đư
 
 ### Train từng model
 
-Project CodeNet cung cấp nhãn trạng thái submission nhưng không có `compiler_message`. Chuẩn bị CSV cân bằng tối đa 500 mẫu mỗi nhãn:
+Project CodeNet cung cấp nhãn trạng thái submission nhưng không có `compiler_message`. Có thể
+chuẩn bị CSV cân bằng tối đa 500 mẫu mỗi nhãn:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\prepare_codenet_dataset.py --max-per-label 500
 ```
+
+Để lấy mọi submission C++ có file source và nhãn được hỗ trợ, dùng
+`--max-per-label 0`. Tùy chọn này có thể tạo dataset rất lớn:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\prepare_codenet_dataset.py --max-per-label 0
+```
+
+Để lấy khoảng 50% submission theo seed cố định, bỏ giới hạn mỗi nhãn và
+dùng `--fraction 0.5`:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\prepare_codenet_dataset.py `
+  --max-per-label 0 `
+  --fraction 0.5 `
+  --output Dataset\codenet_verdicts_50pct.csv
+```
+
+Sau khi tạo xong, `train_all_models.py` sẽ tự ưu tiên
+`codenet_verdicts_50pct_compiler.csv`, rồi `codenet_verdicts_50pct.csv`.
+Khoảng 50% của toàn bộ metadata C++ hiện có là hơn 4 triệu mẫu, nên việc tạo
+CSV và train CodeBERT/ASTNN có thể cần rất nhiều dung lượng, RAM và thời gian.
+
+Để bổ sung chẩn đoán compiler thực tế từ `g++`, dùng script trong thư mục
+Project CodeNet. Script chỉ biên dịch mã C++ (không chạy executable), có timeout
+cho từng mẫu và ghi sang file mới để không thay đổi dataset gốc:
+
+```powershell
+.\.venv\Scripts\python.exe Dataset\Project_CodeNet\enrich_compiler_messages.py `
+  --input Dataset\codenet_verdicts.csv `
+  --output Dataset\codenet_verdicts_compiler.csv `
+  --compiler C:\msys64\mingw64\bin\g++.exe
+```
+
+Nếu `g++` đã có trong `PATH`, có thể bỏ `--compiler`. Có thể chạy thử một phần
+trước bằng `--limit 50`; dùng CSV đầu ra làm `--dataset` khi train. Mã nguồn
+dataset không tin cậy, vì vậy chỉ bật tùy chọn chạy executable riêng sau khi đã
+cô lập trong sandbox phù hợp; script này không có chức năng đó.
 
 Các model CodeBERT và ASTNN cần dependency tùy chọn trong `requirements-ml.txt`. Cài chúng vào virtualenv trước khi train; dùng cùng interpreter để chạy script (tránh gọi `python` nếu nó trỏ ra ngoài `.venv`):
 
@@ -143,8 +184,73 @@ Train riêng từng model:
 Hoặc train tuần tự cả ba model và dừng tại model lỗi đầu tiên:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\train_all_models.py --dataset Dataset\codenet_verdicts.csv --epochs 3 --batch-size 8 --max-length 256
+.\.venv\Scripts\python.exe scripts\train_all_models.py --dataset Dataset\codenet_verdicts_50pct.csv --epochs 3 --batch-size 8 --max-length 512
 ```
+
+Có thể truyền trực tiếp thư mục `Dataset\Project_CodeNet` thay cho CSV. Script
+đọc source theo từng file trong `data`, verdict từ `metadata`, đề bài từ
+`problem_descriptions` và test mẫu từ `derived\input_output`; không cần tạo
+`codenet_verdicts.csv`:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\train_all_models.py `
+  --dataset Dataset\Project_CodeNet --epochs 3 --batch-size 8 --max-length 256
+```
+
+Khi truyền trực tiếp thư mục, mặc định script chọn toàn bộ thư mục metadata và
+nạp 50 thư mục mỗi đợt. Khi mỗi đợt hoàn tất, terminal in thông báo:
+
+```text
+Data pushed | 50/2027 folders | batch 1/41
+```
+
+Bạn có thể tùy chỉnh hai tham số này:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\train_all_models.py `
+  --dataset Dataset\Project_CodeNet `
+  --folder-fraction 0.5 `
+  --folder-batch-size 50 `
+  --io-workers 8 `
+  --epochs 3 --batch-size 8 --max-length 256
+```
+
+`--io-workers` đọc song song metadata và source trong mỗi batch để tăng tốc I/O
+(mặc định 8). Với ổ HDD hoặc thư mục OneDrive, nên thử 4-8; với SSD cục bộ có
+thể thử 8-16. Không nên chạy đồng thời nhiều lệnh train vì chúng sẽ tranh chấp
+I/O và thường chậm hơn.
+
+Khi truyền trực tiếp thư mục, mặc định script dùng toàn bộ folder và không giới
+hạn số mẫu mỗi nhãn. Có thể đặt `--folder-fraction` và `--max-per-label` để
+chạy thử nhanh; `--max-per-label 0` nghĩa là không giới hạn. CSV xuất ra giữ
+thêm `problem_description`, `sample_input` và `sample_output`, vì vậy CodeBERT
+và TF-IDF nhận cùng ngữ cảnh bài toán lúc train và lúc gọi `/classify`. ASTNN
+vẫn chỉ học cấu trúc AST của source.
+
+Nếu đã có `Dataset\codenet_verdicts_compiler.csv`, chỉ cần chạy file tổng hợp
+không tham số; script tự ưu tiên CSV này và mặc định dùng CUDA:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\train_all_models.py
+```
+
+Có thể truyền `--device cpu` nếu cần chạy CPU. CodeBERT vẫn giới hạn tối đa
+512 token mỗi mẫu theo giới hạn kiến trúc; ASTNN và TF-IDF đọc toàn bộ source
+trong từng record CSV.
+
+### AI feedback với Qwen local
+
+Ứng dụng tự gọi Ollama tại `http://localhost:11434` với model
+`qwen2.5-coder:3b-instruct-q8_0`. Qwen nhận lỗi/vị trí dòng từ compiler, bằng chứng
+test và kết quả của classifier, CodeBERT, ASTNN để đưa ra giải thích ngắn gọn.
+Có thể đổi cấu hình bằng các biến môi trường sau:
+
+```powershell
+$env:QWEN_MODEL = "qwen2.5-coder:3b-instruct-q8_0"
+$env:QWEN_BASE_URL = "http://localhost:11434"
+```
+
+Đặt `QWEN_ENABLED=0` nếu muốn tắt Qwen và dùng LLM cloud hoặc fallback nội bộ.
 
 Mỗi script in số mẫu đã đọc, số mẫu train/test, model hiện tại, epoch và tiến độ mẫu đã xử lý. CSV được chia train/test theo `problem_id` khi có cột này để tránh cùng bài toán xuất hiện ở cả hai tập. Checkpoint và `metrics.json` được lưu trong `artifacts\code-models\<model>`; report CodeBERT/ASTNN cũng được tổng hợp trong `comparison.json`. Lần đầu chạy CodeBERT cần mạng để tải checkpoint `microsoft/codebert-base`. Hãy bắt đầu với `--max-per-label 50` và `--epochs 1` để kiểm tra quy trình trước khi train lâu hơn.
 
@@ -172,5 +278,4 @@ Các kiểm thử cục bộ không thực thi code C++ gửi lên. Tích hợp 
 ```powershell
 python scripts\evaluate_classifier.py
 ```
-#   P r o j e c t - 1 - C o d e - A n a l y s i s  
- 
+# Project-1-Code-Analysis

@@ -32,29 +32,40 @@ from app.services.astnn_model import (
     encode_ast,
 )
 from app.services.codebert_model import CODEBERT_MODEL
+from scripts.codenet_dataset import (
+    format_model_text,
+    load_examples as load_dataset_examples,
+)
 
 
-def load_examples(dataset_path: Path) -> list[dict[str, str]]:
-    examples: list[dict[str, str]] = []
-    csv.field_size_limit(min(sys.maxsize, (1 << 31) - 1))
-    with dataset_path.open(encoding="utf-8-sig", newline="") as source:
-        reader = csv.DictReader(source)
-        if not {"code", "label"}.issubset(reader.fieldnames or set()):
-            raise ValueError("Dataset CSV must include 'code' and 'label' columns")
-        for row in reader:
-            code = (row.get("code") or "").strip()
-            label = (row.get("label") or "").strip()
-            if code and label:
-                examples.append(
-                    {
-                        "code": code,
-                        "label": label,
-                        "compiler_message": (row.get("compiler_message") or "").strip(),
-                        "problem_id": (row.get("problem_id") or "").strip(),
-                    }
-                )
-                if len(examples) % 500 == 0:
-                    print(f"Đã đọc {len(examples)} mẫu hợp lệ...", flush=True)
+def load_examples(
+    dataset_path: Path,
+    folder_fraction: float = 1.0,
+    folder_batch_size: int = 50,
+    seed: int = 42,
+    io_workers: int = 8,
+    max_per_label: int = 0,
+) -> list[dict[str, str]]:
+    examples = [
+        {
+            "code": (row.get("code") or "").strip(),
+            "label": (row.get("label") or "").strip(),
+            "compiler_message": (row.get("compiler_message") or "").strip(),
+            "problem_id": (row.get("problem_id") or "").strip(),
+            "problem_description": (row.get("problem_description") or "").strip(),
+            "sample_input": (row.get("sample_input") or "").strip(),
+            "sample_output": (row.get("sample_output") or "").strip(),
+        }
+        for row in load_dataset_examples(
+            dataset_path,
+            max_per_label=max_per_label,
+            folder_fraction=folder_fraction,
+            folder_batch_size=folder_batch_size,
+            seed=seed,
+            io_workers=io_workers,
+        )
+        if (row.get("code") or "").strip() and (row.get("label") or "").strip()
+    ]
     print(f"Valid samples: {len(examples)}", flush=True)
     labels = {sample["label"] for sample in examples}
     if len(labels) < 2:
@@ -112,6 +123,16 @@ def _class_weights(labels: list[str], classes: list[str], device: torch.device) 
     return torch.tensor(weights, dtype=torch.float32, device=device)
 
 
+def _model_text(sample: dict[str, str]) -> str:
+    return format_model_text(
+        sample["code"],
+        sample["compiler_message"],
+        sample.get("problem_description", ""),
+        sample.get("sample_input", ""),
+        sample.get("sample_output", ""),
+    )
+
+
 def _report(
     model_name: str,
     true_labels: list[str],
@@ -166,7 +187,7 @@ def train_codebert(
         progress_interval = max(1, len(train_indices) // (batch_size * 20))
         for indices in _batches(train_indices, batch_size, shuffle=True):
             texts = [
-                f'{examples[i]["code"]}\n{examples[i]["compiler_message"]}'.strip()
+                _model_text(examples[i])
                 for i in indices
             ]
             inputs = tokenizer(
@@ -203,7 +224,7 @@ def train_codebert(
         test_batches = _batches(test_indices, batch_size, shuffle=False)
         for batch_number, indices in enumerate(test_batches, start=1):
             texts = [
-                f'{examples[i]["code"]}\n{examples[i]["compiler_message"]}'.strip()
+                _model_text(examples[i])
                 for i in indices
             ]
             inputs = tokenizer(
@@ -366,6 +387,15 @@ def main(default_model: str | None = None) -> None:
         parser.add_argument("--codebert-model", default=CODEBERT_MODEL)
     parser.add_argument("--device", default=None, help="Defaults to CUDA when available, otherwise CPU")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--folder-fraction", type=float, default=1.0)
+    parser.add_argument("--folder-batch-size", type=int, default=50)
+    parser.add_argument("--io-workers", type=int, default=8)
+    parser.add_argument(
+        "--max-per-label",
+        type=int,
+        default=0,
+        help="Maximum samples per label for a CodeNet directory; 0 means no cap",
+    )
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1:
         parser.error("epochs and batch-size must be positive")
@@ -384,7 +414,14 @@ def main(default_model: str | None = None) -> None:
             "Cài bản PyTorch CUDA hoặc bỏ --device cuda để chạy bằng CPU."
         )
     print(f"Thiết bị train: {device}", flush=True)
-    examples = load_examples(args.dataset)
+    examples = load_examples(
+        args.dataset,
+        args.folder_fraction,
+        args.folder_batch_size,
+        args.seed,
+        args.io_workers,
+        args.max_per_label,
+    )
     train_indices, test_indices = split_examples(examples)
     classes = sorted({sample["label"] for sample in examples})
     args.output_dir.mkdir(parents=True, exist_ok=True)

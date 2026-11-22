@@ -8,6 +8,7 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
+from scripts.codenet_dataset import format_model_text
 
 
 class CodeClassifier:
@@ -54,7 +55,15 @@ class CodeClassifier:
                     label = (row.get("label") or "").strip()
                     if code and label:
                         message = (row.get("compiler_message") or "").strip()
-                        texts.append(f"{code}\n{message}")
+                        texts.append(
+                            format_model_text(
+                                code,
+                                message,
+                                row.get("problem_description") or "",
+                                row.get("sample_input") or "",
+                                row.get("sample_output") or "",
+                            )
+                        )
                         labels.append(label)
         except (OSError, csv.Error) as exc:
             self.reason = f"Could not read labeled dataset: {exc}"
@@ -72,12 +81,23 @@ class CodeClassifier:
         self.pipeline.fit(texts, labels)
         self.reason = ""
 
-    def predict(self, code: str, compiler_message: str = "") -> dict[str, Any]:
+    def predict(
+        self,
+        code: str,
+        compiler_message: str = "",
+        problem_description: str = "",
+        sample_input: str = "",
+        sample_output: str = "",
+    ) -> dict[str, Any]:
         if self.neural_model is not None:
-            return self.neural_model.predict(code, compiler_message)
+            return self.neural_model.predict(
+                code, compiler_message, problem_description, sample_input, sample_output
+            )
         if self.pipeline is None:
             return {"available": False, "reason": self.reason}
-        features = code + "\n" + compiler_message
+        features = format_model_text(
+            code, compiler_message, problem_description, sample_input, sample_output
+        )
         prediction = str(self.pipeline.predict([features])[0])
         probabilities = self.pipeline.predict_proba([features])[0]
         confidence = float(max(probabilities))

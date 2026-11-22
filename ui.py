@@ -1,26 +1,14 @@
+import json
 import os
-from typing import Any
 
 import requests
 import streamlit as st
-from streamlit_ace import st_ace
+import streamlit.components.v1 as components
 
 from app.services.problem_catalog import Problem, list_problem_ids, load_problem
 
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000").rstrip("/")
-VERDICT_STYLES = {
-    "ACCEPTED": ("Accepted (AC)", "#28a745"),
-    "WRONG_ANSWER": ("Wrong Answer (WA)", "#dc3545"),
-    "TIME_LIMIT_EXCEEDED": ("Time Limit Exceeded (TLE)", "#ffc107"),
-    "COMPILE_ERROR": ("Compilation Error (CE)", "#dc3545"),
-    "RUNTIME_ERROR": ("Runtime Error (RE)", "#dc3545"),
-}
-STATUS_LABELS = {
-    "solved": "Đã giải",
-    "in_progress": "Đang làm",
-    "not_started": "Chưa làm",
-}
 
 
 @st.cache_data(show_spinner=False)
@@ -33,418 +21,672 @@ def cached_problem(problem_id: str) -> Problem:
     return load_problem(problem_id)
 
 
-@st.cache_data(ttl=5, show_spinner=False)
-def get_api_health() -> dict[str, Any]:
-    response = requests.get(f"{API_URL}/health", timeout=8)
-    response.raise_for_status()
-    return response.json()
+st.set_page_config(
+    page_title="AI Code Analysis",
+    page_icon="◆",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
-
-def parse_test_cases(text: str) -> list[dict[str, str]]:
-    cases: list[dict[str, str]] = []
-    input_part: list[str] = []
-    output_part: list[str] = []
-    mode: str | None = None
-
-    def content(lines: list[str]) -> str:
-        return "\n".join(lines) + ("\n" if lines else "")
-
-    for line in text.splitlines():
-        marker = line.strip().lower()
-        if marker in {"input:", "input"}:
-            if mode is not None:
-                cases.append(
-                    {"stdin": content(input_part), "expected_stdout": content(output_part)}
-                )
-            input_part, output_part, mode = [], [], "input"
-        elif marker in {"output:", "output", "expected:"}:
-            mode = "output"
-        elif mode == "input":
-            input_part.append(line)
-        elif mode == "output":
-            output_part.append(line)
-    if mode is not None:
-        cases.append(
-            {"stdin": content(input_part), "expected_stdout": content(output_part)}
-        )
-    return cases
-
-
-def clear_editor(problem_id: str) -> None:
-    code_key = f"cpp_code_{problem_id}"
-    revision_key = f"cpp_editor_revision_{problem_id}"
-    st.session_state[code_key] = ""
-    st.session_state[revision_key] = st.session_state.get(revision_key, 0) + 1
-
-
-st.set_page_config(page_title="Trợ giảng C++ AI", page_icon="🧑‍💻", layout="wide")
 st.markdown(
     """
     <style>
-    .stApp { background: #101318; }
-    [data-testid="stMetric"] {
-        background: #1b2028; border: 1px solid #303744;
-        padding: 14px; border-radius: 10px;
-    }
-    .verdict-card {
-        padding: 14px 18px; border-radius: 10px; color: #fff;
-        font-size: 1.25rem; font-weight: 700; margin: 4px 0 16px;
-    }
-    div[data-testid="stTabs"] button { font-weight: 600; }
+    [data-testid="stHeader"], [data-testid="stToolbar"] { display:none; }
+    [data-testid="stSidebar"] { display:none; }
+    section[data-testid="stMain"] { padding:0; }
+    .block-container { max-width:none; padding:0; }
+    iframe { border:0; }
     </style>
     """,
     unsafe_allow_html=True,
 )
-st.title("Trợ giảng phân tích code C++")
-st.caption("Làm bài, chạy code trong Docker sandbox và xem phản hồi học tập trong một màn hình.")
-
-try:
-    health = get_api_health()
-    runner = health["runner"]
-except (requests.RequestException, ValueError, KeyError) as exc:
-    st.error(f"Không thể kiểm tra API tại {API_URL}: {exc}")
-    st.stop()
-
-if runner.get("available"):
-    st.success("Docker sandbox sẵn sàng.")
-else:
-    st.warning(f"Sandbox chưa sẵn sàng: {runner.get('reason', 'Không rõ nguyên nhân')}.")
 
 try:
     problem_ids = cached_problem_ids()
 except (OSError, ValueError) as exc:
-    st.error(f"Không thể tải danh sách đề bài Project CodeNet: {exc}")
+    st.error(f"Không thể tải danh sách bài: {exc}")
     st.stop()
 
-if not problem_ids:
-    st.error("Không tìm thấy đề bài Project CodeNet.")
+selected_id = st.query_params.get("problem")
+if not selected_id:
+    selected_id = st.session_state.get("selected_problem")
+if selected_id not in problem_ids:
+    selected_id = problem_ids[0]
+    st.session_state["selected_problem"] = selected_id
+else:
+    st.session_state["selected_problem"] = selected_id
+
+try:
+    problem = cached_problem(selected_id)
+except (OSError, ValueError) as exc:
+    st.error(f"Không thể tải đề {selected_id}: {exc}")
     st.stop()
 
-problem_status = st.session_state.setdefault("problem_status", {})
+payload = {
+    "apiUrl": API_URL,
+    "problemId": selected_id,
+    "problemTitle": problem.title,
+    "problemHtml": problem.html,
+    "sampleCases": problem.sample_test_cases,
+    "problemIds": problem_ids,
+    "problemCatalog": [
+        {
+            "id": "1",
+            "title": "Two Sum",
+            "difficulty": "Easy",
+            "statement": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
+            "examples": "<p><strong>Input:</strong> nums = [2,7,11,15], target = 9<br><strong>Output:</strong> [0,1]</p>",
+            "constraints": "2 <= nums.length <= 10^4",
+            "cases": [{"stdin": "[2,7,11,15]\n9", "expected_stdout": "[0,1]"}, {"stdin": "[3,2,4]\n6", "expected_stdout": "[1,2]"}, {"stdin": "[3,3]\n6", "expected_stdout": "[0,1]"}],
+        },
+        {
+            "id": "2",
+            "title": "Add Two Numbers",
+            "difficulty": "Medium",
+            "statement": "Add two numbers represented by linked lists and return the sum as a linked list.",
+            "examples": "<p><strong>Input:</strong> l1 = [2,4,3], l2 = [5,6,4]<br><strong>Output:</strong> [7,0,8]</p>",
+            "constraints": "Each linked list contains 1 to 100 nodes.",
+            "cases": [{"stdin": "[2,4,3]\n[5,6,4]", "expected_stdout": "[7,0,8]"}],
+        },
+        {
+            "id": "3",
+            "title": "Longest Substring Without Repeating Characters",
+            "difficulty": "Medium",
+            "statement": "Given a string s, find the length of the longest substring without repeating characters.",
+            "examples": "<p><strong>Input:</strong> s = \"abcabcbb\"<br><strong>Output:</strong> 3</p>",
+            "constraints": "0 <= s.length <= 5 * 10^4",
+            "cases": [{"stdin": "abcabcbb", "expected_stdout": "3"}, {"stdin": "bbbbb", "expected_stdout": "1"}, {"stdin": "pwwkew", "expected_stdout": "3"}],
+        },
+        {
+            "id": "20",
+            "title": "Valid Parentheses",
+            "difficulty": "Easy",
+            "statement": "Determine whether a string containing brackets is valid.",
+            "examples": "<p><strong>Input:</strong> s = \"()[]{}\"<br><strong>Output:</strong> true</p>",
+            "constraints": "1 <= s.length <= 10^4",
+            "cases": [{"stdin": "()[]{}", "expected_stdout": "true"}, {"stdin": "(]", "expected_stdout": "false"}],
+        },
+        {
+            "id": "53",
+            "title": "Maximum Subarray",
+            "difficulty": "Medium",
+            "statement": "Find the contiguous subarray with the largest sum and return its sum.",
+            "examples": "<p><strong>Input:</strong> nums = [-2,1,-3,4,-1,2,1,-5,4]<br><strong>Output:</strong> 6</p>",
+            "constraints": "1 <= nums.length <= 10^5",
+            "cases": [{"stdin": "-2 1 -3 4 -1 2 1 -5 4", "expected_stdout": "6"}],
+        },
+    ],
+}
 
-left, right = st.columns([1.05, 1], gap="large")
+try:
+    list_response = requests.get(f"{API_URL}/api/problems", timeout=8)
+    list_response.raise_for_status()
+    available = list_response.json().get("problems", [])
+except (requests.RequestException, ValueError):
+    available = []
 
-with left:
-    st.subheader("Workspace")
-    selected_id = st.selectbox(
-        "Bài tập Project CodeNet",
-        options=problem_ids,
-        format_func=lambda problem_id: (
-            f"{problem_id} — "
-            f"{STATUS_LABELS[problem_status.get(problem_id, 'not_started')]}"
-        ),
-    )
+dynamic_catalog: list[dict[str, object]] = []
+for item in available[:50]:
     try:
-        problem = cached_problem(selected_id)
-    except (OSError, ValueError) as exc:
-        st.error(f"Không thể tải đề {selected_id}: {exc}")
-        st.stop()
-    st.caption(f"{selected_id} · {problem.title}")
-    with st.expander(f"Đề bài · {problem.title}", expanded=True):
-        st.html(problem.html)
-
-    st.markdown("#### Mã nguồn C++17")
-    code_key = f"cpp_code_{selected_id}"
-    revision_key = f"cpp_editor_revision_{selected_id}"
-    editor_key = f"cpp_editor_{selected_id}_{st.session_state.get(revision_key, 0)}"
-    if code_key not in st.session_state:
-        st.session_state[code_key] = (
-            "#include <iostream>\n"
-            "using namespace std;\n\n"
-            "int main() {\n"
-            "    // TODO: viết lời giải\n"
-            "    return 0;\n"
-            "}\n"
+        detail_response = requests.get(
+            f"{API_URL}/api/problem/{item['problem_id']}",
+            timeout=8,
         )
-    code = st_ace(
-        value=st.session_state[code_key],
-        language="c_cpp",
-        theme="monokai",
-        key=editor_key,
-        height=360,
-        font_size=14,
-        tab_size=4,
-        show_gutter=True,
-        show_print_margin=False,
-        wrap=True,
-        auto_update=True,
-    )
-    if code is not None:
-        st.session_state[code_key] = code
-    else:
-        code = st.session_state[code_key]
+        detail_response.raise_for_status()
+        detail = detail_response.json()
+    except (requests.RequestException, ValueError):
+        continue
+    dynamic_catalog.append({
+        "id": item["problem_id"].lstrip("p"),
+        "title": detail["title"],
+        "difficulty": "Easy",
+        "statement": detail["plain_text"][:1200],
+        "examples": detail["html"],
+        "constraints": "",
+        "cases": detail["test_cases"],
+        "html": detail["html"],
+        "accepted_solution": detail["accepted_solution"],
+    })
+if dynamic_catalog:
+    payload["problemCatalog"] = dynamic_catalog
 
-    st.markdown("#### Test cases")
-    if problem.sample_test_cases:
-        st.caption(
-            "Đã nạp input/output mẫu từ dữ liệu bài toán; có thể sửa hoặc thêm test "
-            "theo định dạng Input:/Output:."
-        )
-        initial_tests = "\n\n".join(
-            f"Input:\n{case['stdin']}\nOutput:\n{case['expected_stdout']}"
-            for case in problem.sample_test_cases
-        )
-    else:
-        st.info("Đề bài không có ví dụ mẫu. Hãy nhập ít nhất một cặp Input:/Output: để chạy thử.")
-        initial_tests = ""
+html = r"""
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+:root{
+  --bg:#0a0a0a;--panel:#1a1a1a;--panel2:#202020;--header:#282828;
+  --border:#303030;--text:#f5f5f5;--muted:#a1a1a1;--green:#2cbb5d;
+  --blue:#409eff;--yellow:#ffa116;--red:#ef4743;
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,system-ui,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+.topbar{height:48px;flex:none;display:flex;align-items:center;gap:10px;padding:0 10px;border-bottom:1px solid var(--border);background:#161616}
+.icon-btn,.nav-btn,.action-btn,.panel-btn{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:6px;height:32px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.icon-btn:hover,.nav-btn:hover,.panel-btn:hover{background:#303030;color:#fff}
+.nav-btn{font-weight:600;color:#f0f0f0}
+.top-title{min-width:220px;display:flex;align-items:center;gap:8px;font-weight:700}
+.spacer{flex:1}
+.timer{min-width:52px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.action-btn{height:34px;padding:0 13px;font-weight:700}
+.run{background:#262626;border-color:#3b3b3b;color:#fff}
+.run:hover{background:#303030}
+.submit{background:var(--green);border-color:var(--green);color:#07130a}
+.submit:hover{filter:brightness(1.08)}
+.workspace{flex:1;min-height:0;display:flex;position:relative}
+.pane{min-width:0;min-height:0;background:var(--panel);overflow:hidden}
+.problem-pane{width:44%;display:flex;flex-direction:column}
+.right-pane{width:56%;display:flex;flex-direction:column}
+.vertical-resizer,.horizontal-resizer{flex:none;background:var(--bg);position:relative;z-index:20}
+.vertical-resizer{width:5px;cursor:col-resize;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+.horizontal-resizer{height:5px;cursor:row-resize;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.vertical-resizer:hover,.vertical-resizer.active,.horizontal-resizer:hover,.horizontal-resizer.active{background:#3e7bca}
+.pane-header{height:44px;flex:none;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--header);padding:0 8px 0 12px}
+.pane-header .title{font-weight:700;display:flex;align-items:center;gap8px}
+.tabs{display:flex;align-items:center;height:100%;gap:2px;overflow-x:auto}
+.tab{height:100%;padding:0 10px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);white-space:nowrap}
+.tab.active{color:var(--text);border-bottom-color:var(--blue)}
+.window-controls{margin-left:auto;display:flex;gap:2px}
+.panel-btn{width:31px;padding:0;font-size:14px}
+.pane-body{flex:1;min-height:0;overflow:auto}
+.problem-body{padding:18px 20px 32px;line-height:1.62}
+.problem-body h1{font-size:22px;margin:0 0 10px}
+.problem-body h2{font-size:17px;margin:20px 0 8px}
+.problem-body pre{background:#262626;border:1px solid #333;border-radius:7px;padding:12px;overflow:auto}
+.problem-body code{color:#e6edf3}
+.difficulty{display:inline-flex;height:24px;align-items:center;border-radius:999px;padding:0 9px;background:rgba(44,187,93,.12);color:var(--green);font-size:12px;font-weight:700;margin-right:8px}
+.problem-meta{display:flex;align-items:center;color:var(--muted);font-size:13px;margin-bottom:12px}
+.editor-pane{flex:1;min-height:90px;display:flex;flex-direction:column}
+.editor-toolbar{height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 8px;border-bottom:1px solid var(--border);background:#222}
+select{height:30px;border:1px solid #3a3a3a;border-radius:6px;background:#2a2a2a;color:#ddd;padding:0 8px}
+.editor-wrap{flex:1;min-height:0;display:flex;background:#1e1e1e}
+.line-numbers{width:52px;flex:none;padding:12px 9px 12px 0;text-align:right;color:#858585;background:#1e1e1e;border-right:1px solid #252525;font:14px/22px Consolas,monospace;overflow:hidden;user-select:none}
+.code-editor-layer{position:relative;flex:1;min-width:0;overflow:hidden;background:#1e1e1e}
+#codeHighlight{position:absolute;inset:0;margin:0;padding:12px 14px;border:0;overflow:hidden;pointer-events:none;color:#d4d4d4;font:14px/22px Consolas,monospace;tab-size:4;white-space:pre}
+#codeEditor{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:none;background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:#d4d4d4;padding:12px 14px;font:14px/22px Consolas,monospace;tab-size:4;white-space:pre;overflow:auto}
+#codeEditor::selection{background:rgba(38,79,120,.65);-webkit-text-fill-color:transparent}
+.hl-keyword{color:#569cd6}.hl-type{color:#4ec9b0}.hl-string{color:#ce9178}.hl-comment{color:#6a9955}.hl-number{color:#b5cea8}.hl-preprocessor{color:#c586c0}
+.cpp-language{height:30px;display:flex;align-items:center;border:1px solid #3a3a3a;border-radius:6px;background:#2a2a2a;color:#ddd;padding:0 9px;font-weight:600}
+.console-pane{height:32%;min-height:90px;display:flex;flex-direction:column}
+.console-header{height:44px;flex:none;display:flex;align-items:center;border-bottom:1px solid var(--border);background:#222;padding:0 8px}
+.console-body{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+.case-pills{display:flex;gap:7px;margin-bottom:12px}
+.case-pill{height:30px;border:1px solid #383838;border-radius:6px;background:#242424;color:var(--muted);padding:0 10px}
+.case-pill.active{border-color:#4d98ff;color:#fff;background:#2b394a}
+.case-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.case-input{width:100%;min-height:74px;resize:vertical;border:1px solid #353535;border-radius:7px;background:#202020;color:#f0f0f0;padding:10px;font:13px/20px Consolas,monospace}
+.test-result{border-left:3px solid var(--green);background:#202820;border-radius:7px;padding:12px;margin-bottom:10px}
+.test-result.error{border-left-color:var(--red);background:#2a2020}
+.test-result pre{margin:8px 0 0;white-space:pre-wrap}
+.drawer-overlay{position:absolute;inset:48px 0 0 0;z-index:100;background:rgba(0,0,0,.5);display:none}
+.drawer-overlay.open{display:block}
+.drawer{width:310px;height:100%;background:#1c1c1c;border-right:1px solid var(--border);box-shadow:12px 0 30px rgba(0,0,0,.35);display:flex;flex-direction:column}
+.drawer-search{margin:10px;border:1px solid #3a3a3a;border-radius:7px;background:#252525;color:#fff;height:36px;padding:0 10px}
+.drawer-list{flex:1;overflow:auto;padding:4px}
+.drawer-item{width:100%;border:0;border-radius:6px;background:transparent;color:#ddd;text-align:left;padding:9px 10px}
+.drawer-item:hover,.drawer-item.active{background:#303030}
+.drawer-item span{display:block;color:#888;font-size:11px;margin-bottom:2px}
+.collapsed-v{width:44px!important}
+.collapsed-v .pane-body,.collapsed-v .tabs,.collapsed-v .pane-header .title{display:none!important}
+.collapsed-v .pane-header{width:44px;padding:0;justify-content:center}
+.collapsed-v .window-controls{margin:0;flex-direction:column}
+.collapsed-v .pane-header .tabs{display:none}
+.collapsed-h{height:44px!important;min-height:44px!important;flex:none!important}
+.collapsed-h .console-body,.collapsed-h .pane-body{display:none}
+.collapsed-h.editor-pane .editor-toolbar,.collapsed-h.editor-pane .editor-wrap{display:none}
+.hidden-pane{display:none!important}
+.maximize{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:80!important}
+.loading{display:inline-block;width:14px;height:14px;border:2px solid #777;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.ai-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;border-radius:99px;background:var(--red);color:#fff;font-size:10px;margin-left:5px}
+.settings-row{display:flex;gap:8px;align-items:center}
+.settings-row input{height:30px;width:180px;border:1px solid #3a3a3a;border-radius:6px;background:#2a2a2a;color:#ddd;padding:0 8px}
+.ai-card{border:1px solid #343434;border-radius:8px;padding:12px;background:#202020;line-height:1.55}
+.ai-card.error-tip{border-left:3px solid var(--red)}
+.skel{height:12px;border-radius:5px;background:linear-gradient(90deg,#292929,#3a3a3a,#292929);background-size:200% 100%;animation:skel 1.2s linear infinite;margin:8px 0}
+@keyframes skel{to{background-position:-200% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:900px){
+  .problem-pane{width:40%}.right-pane{width:60%}.top-title{min-width:150px}.case-grid{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+  .workspace{flex-direction:column}.problem-pane{width:100%!important;height:42%!important}.right-pane{width:100%!important;height:58%!important}.vertical-resizer{width:100%;height:5px;cursor:row-resize;border:0}.top-title{min-width:0}.top-title strong{display:none}.timer{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <button class="nav-btn" id="drawerBtn">☰ &nbsp; Problem List</button>
+    <button class="icon-btn" id="prevProblem" title="Previous">‹</button>
+    <button class="icon-btn" id="nextProblem" title="Next">›</button>
+    <button class="icon-btn" id="randomProblem" title="Random problem">🔀 Random</button>
+    <div class="top-title"><strong id="topNumber"></strong><span id="topTitle"></span></div>
+    <div class="spacer"></div>
+    <span class="timer" id="timer">00:00</span>
+    <button class="action-btn run" id="runBtn">▶ Run</button>
+    <button class="action-btn submit" id="submitBtn">✓ Submit</button>
+  </header>
+  <main class="workspace" id="workspace">
+    <section class="pane problem-pane" id="problemPane">
+      <div class="pane-header">
+        <div class="tabs" id="problemTabs">
+          <button class="tab active" data-tab="description">Description</button>
+          <button class="tab" data-tab="solutions">Solutions</button>
+        </div>
+        <div class="window-controls">
+          <button class="panel-btn" data-action="minimize" data-pane="problemPane" title="Collapse">—</button>
+          <button class="panel-btn" data-action="maximize" data-pane="problemPane" title="Maximize">⛶</button>
+        </div>
+      </div>
+      <div class="pane-body problem-body" id="problemBody"></div>
+    </section>
+    <div class="vertical-resizer" id="vResizer"></div>
+    <section class="pane right-pane" id="rightPane">
+      <section class="editor-pane" id="editorPane">
+        <div class="pane-header">
+          <div class="title">‹ / › &nbsp; Code</div>
+          <div class="window-controls">
+            <button class="panel-btn" data-action="minimize" data-pane="editorPane" title="Collapse">—</button>
+            <button class="panel-btn" data-action="maximize" data-pane="editorPane" title="Maximize">⛶</button>
+          </div>
+        </div>
+        <div class="editor-toolbar">
+          <select id="language">
+            <option>C++</option>
+            <option>Python3</option>
+          </select>
+          <button class="icon-btn" id="resetCode">Reset</button>
+          <button class="icon-btn" id="formatCode">Format</button>
+          <div class="settings-row">
+            <input id="ollamaModel" value="qwen2.5-coder:3b" aria-label="Ollama model">
+          </div>
+          <div class="spacer"></div>
+        </div>
+        <div class="editor-wrap">
+          <div class="line-numbers" id="lineNumbers">1</div>
+          <div class="code-editor-layer">
+            <pre id="codeHighlight"></pre>
+            <textarea id="codeEditor" spellcheck="false" wrap="off"></textarea>
+          </div>
+        </div>
+      </section>
+      <div class="horizontal-resizer" id="hResizer"></div>
+      <section class="console-pane" id="consolePane">
+        <div class="console-header">
+          <div class="tabs">
+            <button class="tab active" data-console="testcase">Testcase</button>
+            <button class="tab" data-console="result">Test Result</button>
+            <button class="tab" data-console="ai">AI Feedback<span id="aiBadge"></span></button>
+          </div>
+          <div class="window-controls">
+            <button class="panel-btn" data-action="minimize" data-pane="consolePane" title="Collapse">—</button>
+            <button class="panel-btn" data-action="maximize" data-pane="consolePane" title="Maximize">⛶</button>
+          </div>
+        </div>
+        <div class="console-body" id="consoleBody"></div>
+      </section>
+    </section>
+    <div class="drawer-overlay" id="drawerOverlay">
+      <aside class="drawer">
+        <input class="drawer-search" id="drawerSearch" placeholder="Search problem...">
+        <div class="drawer-list" id="drawerList"></div>
+      </aside>
+    </div>
+  </main>
+</div>
+<script>
+const data = __PAYLOAD__;
+const catalog=data.problemCatalog;
+const state = {activeProblem:0,activeCase:0,cases:[],results:null,aiResponse:"",aiError:"",simulateWrong:false};
+const problemPane=document.getElementById("problemPane"),rightPane=document.getElementById("rightPane");
+const editorPane=document.getElementById("editorPane"),consolePane=document.getElementById("consolePane");
+const codeEditor=document.getElementById("codeEditor"),lineNumbers=document.getElementById("lineNumbers");
+const codeHighlight=document.getElementById("codeHighlight");
 
-    tests_text = st.text_area(
-        "Input/Output mong đợi (mỗi test gồm Input: và Output:)",
-        height=180,
-        value=initial_tests,
-        key=f"tests_{selected_id}",
-        help="Có thể nhập nhiều test liên tiếp; đầu ra được so sánh theo token.",
-    )
-    submit_col, clear_col = st.columns(2)
-    with submit_col:
-        submitted = st.button(
-            "Nộp bài & Phân tích",
-            type="primary",
-            use_container_width=True,
-            disabled=not runner.get("available", False),
-        )
-    with clear_col:
-        st.button(
-            "Xóa code",
-            use_container_width=True,
-            on_click=clear_editor,
-            args=(selected_id,),
-        )
+const starters={
+  "C++":(p)=>`#include <bits/stdc++.h>\n\nint main()\n{\n    // Solve: ${p.title}\n    \n}`,
+  "Python3":(p)=>`# ${p.title}\n\nclass Solution:\n    def solve(self):\n        # Write your solution here\n        pass\n`,
+};
 
-with right:
-    st.subheader("Analysis & Feedback Hub")
-    execution_tab, feedback_tab, knowledge_tab = st.tabs(
-        ["Kết quả chạy Docker", "Phân tích AI", "Tài liệu học tập"]
-    )
+function problemDescription(p){
+  if(p.html)return p.html;
+  const difficultyClass=p.difficulty==="Easy"?"green":"yellow";
+  return `<h1>${p.id}. ${p.title}</h1><div class="problem-meta"><span class="difficulty" style="color:var(--${difficultyClass})">${p.difficulty}</span><span>Topics</span></div><p>${p.statement}</p><h2>Examples</h2>${p.examples}<h2>Constraints</h2><pre>${escapeHtml(p.constraints)}</pre>`;
+}
 
-    results_by_problem = st.session_state.setdefault("analysis_results", {})
-    errors_by_problem = st.session_state.setdefault("analysis_errors", {})
-    result = results_by_problem.get(selected_id)
-    analysis_error = errors_by_problem.get(selected_id)
-    if submitted:
-        results_by_problem.pop(selected_id, None)
-        errors_by_problem.pop(selected_id, None)
-        result = None
-        analysis_error = None
-        test_cases = parse_test_cases(tests_text)
-        if not code or not code.strip():
-            errors_by_problem[selected_id] = "Hãy nhập mã nguồn C++."
-            st.rerun()
-        if not test_cases:
-            errors_by_problem[selected_id] = (
-                "Hãy thêm ít nhất một test case theo định dạng Input:/Output:."
-            )
-            st.rerun()
+function loadProblem(index){
+  if(index<0)index=catalog.length-1;
+  if(index>=catalog.length)index=0;
+  state.activeProblem=index;
+  state.activeCase=0;
+  state.results=null;
+  state.aiResponse="";
+  state.aiError="";
+  document.getElementById("aiBadge").innerHTML="";
+  const p=catalog[index];
+  document.getElementById("topTitle").textContent=p.title;
+  document.getElementById("topNumber").textContent=p.id+".";
+  document.getElementById("problemBody").innerHTML=problemDescription(p);
+  state.cases=p.cases.map((c,i)=>({...c,name:"Case "+(i+1)}));
+  const lang=document.getElementById("language").value||"C++";
+  codeEditor.value=starters[lang](p);
+  updateLines();
+  renderCases();
+  document.querySelectorAll("[data-tab]").forEach(t=>t.classList.toggle("active",t.dataset.tab==="description"));
+}
 
-        problem_status.setdefault(selected_id, "in_progress")
-        try:
-            with st.spinner("Đang biên dịch, chạy Docker và tạo phân tích..."):
-                response = requests.post(
-                    f"{API_URL}/analyze",
-                    json={
-                        "code": code,
-                        "test_cases": test_cases,
-                        "problem_id": selected_id,
-                    },
-                    timeout=100,
-                )
-            if response.ok:
-                result = response.json()
-                results_by_problem[selected_id] = result
-                if result.get("verdict") == "ACCEPTED":
-                    problem_status[selected_id] = "solved"
-            else:
-                try:
-                    detail = response.json().get("detail", response.text)
-                except ValueError:
-                    detail = response.text
-                errors_by_problem[selected_id] = (
-                    f"API trả lỗi {response.status_code}: {detail}"
-                )
-                analysis_error = errors_by_problem[selected_id]
-        except requests.RequestException as exc:
-            errors_by_problem[selected_id] = f"Không thể gọi API: {exc}"
-            analysis_error = errors_by_problem[selected_id]
+let initialId=null;
+try{initialId=new URL(window.top.location.href).searchParams.get("problem")}catch(e){}
+const initialIndex=catalog.findIndex(p=>p.id===initialId);
+loadProblem(initialIndex>=0?initialIndex:0);
 
-    if analysis_error:
-        st.error(analysis_error)
+function escapeHtml(v){return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function highlightCpp(code){
+  const keywords=new Set(["int","main","return","if","else","for","while","do","switch","case","break","continue","class","struct","namespace","using","const","constexpr","static","void","bool","char","long","double","float","unsigned","signed","auto","template","typename","public","private","protected","true","false","std","vector","string","cin","cout","endl"]);
+  const types=new Set(["int","char","void","bool","double","float","long","unsigned","signed","auto","string","vector"]);
+  const pattern=/(\/\/.*$|#\s*[^\n]+|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b\d+(?:\.\d+)?\b|\b[A-Za-z_][A-Za-z0-9_]*\b)/gm;
+  let result="",last=0,match;
+  while((match=pattern.exec(code))){
+    result+=escapeHtml(code.slice(last,match.index));
+    const token=match[0];
+    let className="";
+    if(token.startsWith("//"))className="hl-comment";
+    else if(token.startsWith("#"))className="hl-preprocessor";
+    else if(token.startsWith('"')||token.startsWith("'"))className="hl-string";
+    else if(/^\d/.test(token))className="hl-number";
+    else if(types.has(token))className="hl-type";
+    else if(keywords.has(token))className="hl-keyword";
+    result+=className?`<span class="${className}">${escapeHtml(token)}</span>`:escapeHtml(token);
+    last=pattern.lastIndex;
+  }
+  return result+escapeHtml(code.slice(last))+"\n";
+}
+function updateLines(){
+  const count=codeEditor.value.split("\n").length;
+  lineNumbers.textContent=Array.from({length:count},(_,i)=>i+1).join("\n");
+  lineNumbers.scrollTop=codeEditor.scrollTop;
+  codeHighlight.innerHTML=highlightCpp(codeEditor.value);
+  codeHighlight.scrollTop=codeEditor.scrollTop;
+  codeHighlight.scrollLeft=codeEditor.scrollLeft;
+}
+codeEditor.addEventListener("input",updateLines);
+codeEditor.addEventListener("scroll",()=>{
+  lineNumbers.scrollTop=codeEditor.scrollTop;
+  codeHighlight.scrollTop=codeEditor.scrollTop;
+  codeHighlight.scrollLeft=codeEditor.scrollLeft;
+});
+codeEditor.addEventListener("keydown",(e)=>{
+  if(e.key==="Tab"){e.preventDefault();const s=codeEditor.selectionStart,e2=codeEditor.selectionEnd;codeEditor.setRangeText("    ",s,e2,"end");updateLines();}
+});
+updateLines();
 
-    if result:
-        verdict = result.get("verdict", "UNKNOWN")
-        label, color = VERDICT_STYLES.get(verdict, (verdict, "#6c757d"))
-        with execution_tab:
-            st.markdown(
-                f'<div class="verdict-card" style="background:{color}">{label}</div>',
-                unsafe_allow_html=True,
-            )
-            duration = result.get("duration_ms")
-            metric_col, memory_col = st.columns(2)
-            metric_col.metric(
-                "Thời gian thực thi tổng",
-                f"{duration} ms" if duration is not None else "Không có dữ liệu",
-            )
-            memory_col.metric("Bộ nhớ", "Runner chưa đo")
+function elapsedTimer(){
+  let seconds=0;
+  setInterval(()=>{seconds++;document.getElementById("timer").textContent=String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")},1000);
+}
+elapsedTimer();
 
-            tests = result.get("tests", [])
-            if tests:
-                rows = [
-                    {
-                        "Test": f"Test {test.get('case', index)}",
-                        "Trạng thái": test.get("status", "UNKNOWN"),
-                        "Chi tiết": test.get("stderr") or (
-                            "Đầu ra không khớp" if test.get("status") == "WRONG_ANSWER" else "—"
-                        ),
-                    }
-                    for index, test in enumerate(tests, start=1)
-                ]
-                st.dataframe(rows, hide_index=True, use_container_width=True)
-                for index, test in enumerate(tests, start=1):
-                    with st.expander(f"Chi tiết Test {test.get('case', index)}"):
-                        if test.get("stdout") is not None:
-                            st.caption("Output")
-                            st.code(test["stdout"] or "(rỗng)", language="text")
-                        if test.get("expected_stdout") is not None:
-                            st.caption("Expected")
-                            st.code(test["expected_stdout"] or "(rỗng)", language="text")
-                        if test.get("stderr"):
-                            st.caption("stderr")
-                            st.code(test["stderr"], language="text")
-                st.caption(
-                    "Runner hiện chỉ cung cấp thời gian tổng; chưa thu thập thời gian riêng "
-                    "hoặc mức dùng bộ nhớ cho từng test."
-                )
-            elif verdict == "COMPILE_ERROR":
-                st.info("Không có test nào chạy được vì chương trình chưa biên dịch thành công.")
+document.getElementById("prevProblem").onclick=()=>loadProblem(state.activeProblem-1);
+document.getElementById("nextProblem").onclick=()=>loadProblem(state.activeProblem+1);
+document.getElementById("randomProblem").onclick=()=>{
+  let next=state.activeProblem;
+  while(next===state.activeProblem){
+    next=Math.floor(Math.random()*catalog.length);
+  }
+  loadProblem(next);
+};
 
-            if result.get("diagnostic"):
-                st.error("Chẩn đoán từ runner")
-                st.code(result["diagnostic"], language="text")
-            if result.get("static_analysis"):
-                with st.expander("Cảnh báo phân tích tĩnh từ compiler"):
-                    st.code(result["static_analysis"], language="text")
-            localization = result.get("error_localization", {})
-            compiler_locations = localization.get("compiler_diagnostics", [])
-            failing_cases = localization.get("failing_test_cases", [])
-            if compiler_locations or failing_cases:
-                st.markdown("**Vị trí và bằng chứng đáng chú ý**")
-                for location in compiler_locations:
-                    position = f"Dòng {location['line']}"
-                    if location.get("column") is not None:
-                        position += f", cột {location['column']}"
-                    st.write(
-                        f"- {position} ({location['severity']}): {location['message']}"
-                    )
-                if failing_cases:
-                    cases = ", ".join(
-                        f"Test {case['case']} ({case['status']})" for case in failing_cases
-                    )
-                    st.write(f"- Test làm lộ vấn đề: {cases}")
-                st.caption(localization.get("note", ""))
-            ml = result.get("ml_prediction", {})
-            if ml.get("available"):
-                st.caption(
-                    f"Dự đoán ML thử nghiệm: {ml['label']} "
-                    f"({ml['confidence']:.0%}) — không thay verdict."
-                )
-        with feedback_tab:
-            feedback = result.get("feedback", {})
-            st.caption(
-                f"Chế độ: {feedback.get('mode', 'không rõ')} · "
-                f"Nguồn: {', '.join(feedback.get('sources', [])) or 'không có'}"
-            )
-            st.markdown("**Giải thích và gợi ý**")
-            st.write(feedback.get("explanation", "Chưa có phản hồi từ dịch vụ phân tích."))
-            hints = {
-                "COMPILE_ERROR": [
-                    "Đọc thông báo lỗi đầu tiên và xác định tên tệp, dòng được nêu.",
-                    "Kiểm tra cú pháp, kiểu dữ liệu và khai báo ngay quanh vị trí đó.",
-                ],
-                "WRONG_ANSWER": [
-                    "So sánh output và expected của test thất bại để tìm khác biệt đầu tiên.",
-                    "Thử thêm trường hợp biên phù hợp với ràng buộc của đề bài.",
-                ],
-                "RUNTIME_ERROR": [
-                    "Thu nhỏ input gây lỗi để tái hiện hành vi.",
-                    "Kiểm tra chỉ số mảng, phép chia và giả định về dữ liệu đầu vào.",
-                ],
-                "TIME_LIMIT_EXCEEDED": [
-                    "Xem test nào vượt giới hạn và kích thước input tương ứng.",
-                    "Ước lượng độ phức tạp của các vòng lặp và thao tác lặp lại.",
-                ],
-            }.get(verdict, [])
-            if hints:
-                st.markdown("**Gợi ý từng bước**")
-                for index, hint in enumerate(hints, start=1):
-                    st.markdown(f"{index}. {hint}")
-            if result.get("static_analysis"):
-                st.warning("Compiler có cảnh báo; xem nội dung trong tab Kết quả chạy Docker.")
-            retrieval = result.get("code_retrieval", {})
-            st.markdown("**Code tham chiếu cùng bài toán**")
-            if retrieval.get("available"):
-                st.caption(
-                    f"Đã lập chỉ mục {retrieval.get('indexed_count', 0)} submission C++; "
-                    f"bỏ qua {retrieval.get('missing_source_count', 0)} file thiếu và "
-                    f"{retrieval.get('oversized_source_count', 0)} file vượt giới hạn."
-                )
-                verdict_comparison = retrieval.get("nearest_by_verdict", [])
-                if verdict_comparison:
-                    st.caption(
-                        "Gần nhất theo verdict: "
-                        + " · ".join(
-                            f"{item['verdict']} {item['similarity']:.3f}"
-                            for item in verdict_comparison
-                        )
-                    )
-                references = retrieval.get("results", [])
-                if references:
-                    for reference in references:
-                        with st.expander(
-                            f"{reference['submission_id']} · {reference['verdict']} · "
-                            f"similarity {reference['similarity']:.3f}"
-                        ):
-                            st.code(reference["code_excerpt"], language="cpp")
-                            if reference.get("truncated"):
-                                st.caption("Đoạn code được rút gọn.")
-                else:
-                    st.info("Không tìm thấy submission có độ tương đồng TF-IDF đáng kể.")
-                st.caption(retrieval.get("note", ""))
-            else:
-                st.info(retrieval.get("reason", "Không có dữ liệu code tham chiếu."))
-    else:
-        with execution_tab:
-            st.info("Nộp bài để xem verdict và kết quả từng test.")
-        with feedback_tab:
-            st.info("Phân tích AI và gợi ý sẽ xuất hiện sau khi chạy bài.")
+function renderCases(){
+  const box=document.getElementById("consoleBody");
+  let html=`<div class="case-pills">${state.cases.map((c,i)=>`<button class="case-pill ${i===state.activeCase?"active":""}" data-case="${i}">${c.name}</button>`).join("")}<button class="case-pill" id="addCase">+</button></div><div class="case-grid">`;
+  const c=state.cases[state.activeCase];
+  html+=`<div><label class="field-label">Input</label><textarea class="case-input" id="caseInput">${escapeHtml(c.stdin||"")}</textarea></div><div><label class="field-label">Expected output</label><textarea class="case-input" id="caseExpected">${escapeHtml(c.expected_stdout||"")}</textarea></div></div>`;
+  box.innerHTML=html;
+  box.querySelectorAll("[data-case]").forEach(btn=>btn.onclick=()=>{saveCurrentCase();state.activeCase=Number(btn.dataset.case);renderCases()});
+  const input=document.getElementById("caseInput"),expected=document.getElementById("caseExpected");
+  input.oninput=()=>state.cases[state.activeCase].stdin=input.value;
+  expected.oninput=()=>state.cases[state.activeCase].expected_stdout=expected.value;
+  document.getElementById("addCase").onclick=()=>{saveCurrentCase();state.cases.push({name:"Case "+(state.cases.length+1),stdin:"",expected_stdout:""});state.activeCase=state.cases.length-1;renderCases()};
+}
+function escapeHtml(v){return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function saveCurrentCase(){
+  const input=document.getElementById("caseInput"),expected=document.getElementById("caseExpected");
+  if(input&&state.cases[state.activeCase]){state.cases[state.activeCase].stdin=input.value;state.cases[state.activeCase].expected_stdout=expected.value}
+}
+renderCases();
 
-    with knowledge_tab:
-        if result:
-            query = " ".join(
-                part
-                for part in (
-                    result.get("verdict", ""),
-                    result.get("diagnostic", ""),
-                    result.get("static_analysis", ""),
-                    code[:1000],
-                )
-                if part
-            )
-            try:
-                knowledge_response = requests.get(
-                    f"{API_URL}/knowledge/search",
-                    params={"q": query, "limit": 5},
-                    timeout=10,
-                )
-                knowledge_response.raise_for_status()
-                documents = knowledge_response.json().get("results", [])
-            except (requests.RequestException, ValueError) as exc:
-                st.error(f"Không thể tải tài liệu liên quan: {exc}")
-            else:
-                if documents:
-                    for document in documents:
-                        with st.container(border=True):
-                            st.markdown(f"**{document['title']}**")
-                            st.write(document["content"])
-                else:
-                    st.info("Chưa tìm thấy tài liệu khớp với kết quả này.")
-        else:
-            st.info("Tài liệu liên quan sẽ được truy xuất sau khi chạy bài.")
+document.querySelectorAll("[data-console]").forEach(tab=>tab.onclick=()=>{
+  document.querySelectorAll("[data-console]").forEach(t=>t.classList.remove("active"));tab.classList.add("active");
+  if(tab.dataset.console==="testcase")renderCases();
+  else if(tab.dataset.console==="result")renderResults();
+  else renderAI();
+});
+
+function renderResults(){
+  const box=document.getElementById("consoleBody");
+  if(!state.results){
+    box.innerHTML=`<div class="test-result"><strong>Test Result</strong><p>Run or Submit code to see execution results.</p></div>`;
+    return;
+  }
+  const r=state.results;
+  const success=r.verdict==="ACCEPTED"||r.verdict==="MOCK_ACCEPTED";
+  const tone=success?"test-result":"test-result error";
+  let passed=r.tests? r.tests.filter(t=>t.status==="PASSED").length:0,total=r.tests?r.tests.length:0;
+  const verdictLabel=r.verdict==="MOCK_ACCEPTED"?"Accepted (Demo)":(r.verdict||"No result");
+  let html=`<div class="${tone}"><strong>${verdictLabel}</strong><div>${passed}/${total} test cases passed · ${r.duration_ms||"—"} ms</div>`;
+  if(r.stdout)html+=`<pre>${escapeHtml(r.stdout)}</pre>`;
+  if(r.diagnostic)html+=`<pre>${escapeHtml(r.diagnostic)}</pre>`;
+  html+="</div>";
+  if(r.tests)html+=r.tests.map((t,i)=>`<div class="${t.status==="PASSED"?"test-result":"test-result error"}"><strong>Test ${i+1}: ${t.status}</strong><pre>Input:\n${escapeHtml(t.stdin||"")}\nExpected:\n${escapeHtml(t.expected_stdout||"")}\nActual:\n${escapeHtml(t.stdout||"")}</pre></div>`).join("");
+  box.innerHTML=html;
+}
+
+function markdownLite(text){
+  let html=escapeHtml(text);
+  html=html.replace(/^### (.*)$/gm,"<h3>$1</h3>").replace(/^## (.*)$/gm,"<h2>$1</h2>");
+  html=html.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>").replace(/`([^`]+)`/g,"<code>$1</code>");
+  html=html.replace(/\n/g,"<br>");
+  return html;
+}
+
+function renderAI(){
+  const box=document.getElementById("consoleBody");
+  if(state.aiResponse){
+    box.innerHTML=`<div class="ai-card">${markdownLite(state.aiResponse)}</div>`;
+  }else if(state.aiError){
+    box.innerHTML=`<div class="ai-card error-tip"><strong>AI feedback unavailable</strong><p>${escapeHtml(state.aiError)}</p><p>Start Ollama with CORS enabled:</p><pre>OLLAMA_ORIGINS="*" ollama serve</pre><button class="icon-btn" id="retryAI">Retry</button></div>`;
+    document.getElementById("retryAI").onclick=explainWithAI;
+  }else{
+    box.innerHTML=`<div class="ai-card"><strong>AI Feedback</strong><p>Run a failing testcase to request an explanation.</p><button class="icon-btn" id="explainAI">Explain Error with AI</button></div>`;
+    document.getElementById("explainAI").onclick=explainWithAI;
+  }
+}
+
+async function explainWithAI(){
+  const box=document.getElementById("consoleBody");
+  state.aiResponse="";
+  state.aiError="";
+  box.innerHTML=`<div class="ai-card"><strong>Generating explanation...</strong><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>`;
+  const p=catalog[state.activeProblem];
+  const failed=state.results?.tests?.find(t=>t.status==="WRONG_ANSWER")||state.cases[state.activeCase]||{};
+  const verdict=state.results?.verdict||"Wrong Answer";
+  try{
+    const response=await fetch(data.apiUrl+"/api/ai-feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      problem_description:p.html||p.statement||p.title,
+      code:codeEditor.value,
+      verdict,
+      failing_input:failed.stdin||"",
+      actual_output:failed.stdout||"",
+      expected_output:failed.expected_stdout||"",
+      model:document.getElementById("ollamaModel").value.trim()||"qwen2.5-coder:3b-instruct-q8_0"
+    })});
+    const payload=await response.json();
+    if(payload.available)state.aiResponse=payload.response||"No explanation returned.";
+    else state.aiError=`${payload.error||"AI feedback unavailable"}${payload.detail?"\n"+payload.detail:""}`;
+  }catch(error){
+    state.aiError=`Could not reach the FastAPI AI feedback proxy. ${error.message}`;
+  }
+  renderAI();
+  document.querySelectorAll("[data-console]").forEach(t=>t.classList.toggle("active",t.dataset.console==="ai"));
+}
+
+async function runCode(){
+  saveCurrentCase();
+  const btn=document.getElementById("runBtn");btn.innerHTML='<span class="loading"></span>';
+  const c=state.cases[state.activeCase];
+  try{
+    const r=await fetch(data.apiUrl+"/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem_id:catalog[state.activeProblem].id?("p"+String(catalog[state.activeProblem].id).padStart(5,"0")):data.problemId,language:document.getElementById("language").value,code:codeEditor.value,custom_input:c?.stdin||""})});
+    const payload=await r.json();
+    const verdict=payload.verdict||"Wrong Answer";
+    state.results={verdict,stdout:payload.actual_output||"",diagnostic:payload.stderr||"",duration_ms:payload.duration_ms||0,tests:[{status:verdict==="Accepted"?"PASSED":verdict,stdin:c?.stdin||"",expected_stdout:payload.expected_output||c?.expected_stdout||"",stdout:payload.actual_output||""}]};
+  }catch(error){
+    state.results={verdict:"Runtime Error",stdout:"",diagnostic:String(error),duration_ms:0,tests:[{status:"Runtime Error",stdin:c?.stdin||"",expected_stdout:c?.expected_stdout||"",stdout:""}]};
+  }
+  if(state.results.verdict!=="Accepted"){
+    document.getElementById("aiBadge").innerHTML='<span class="ai-badge">!</span>';
+    explainWithAI();
+  }
+  btn.textContent="▶ Run";renderResults();document.querySelectorAll("[data-console]").forEach(t=>t.classList.toggle("active",t.dataset.console==="result"));
+}
+async function submitCode(){
+  saveCurrentCase();
+  const btn=document.getElementById("submitBtn");btn.innerHTML='<span class="loading"></span>';
+  const p=catalog[state.activeProblem];
+  const problemId="p"+String(p.id).padStart(5,"0");
+  const tests=[];
+  let overall="Accepted";
+  let duration=0;
+  for(let i=0;i<state.cases.length;i++){
+    const c=state.cases[i];
+    try{
+      const r=await fetch(data.apiUrl+"/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({problem_id:problemId,language:document.getElementById("language").value,code:codeEditor.value,custom_input:c.stdin||""})});
+      const payload=await r.json();
+      const verdict=payload.verdict||"Wrong Answer";
+      duration+=payload.duration_ms||0;
+      tests.push({case:i+1,status:verdict==="Accepted"?"PASSED":verdict,stdin:c.stdin||"",expected_stdout:payload.expected_output||c.expected_stdout||"",stdout:payload.actual_output||"",stderr:payload.stderr||""});
+      if(verdict!=="Accepted")overall=verdict;
+    }catch(error){
+      overall="Runtime Error";
+      tests.push({case:i+1,status:"Runtime Error",stdin:c.stdin||"",expected_stdout:c.expected_stdout||"",stdout:"",stderr:String(error)});
+    }
+  }
+  state.results={verdict:overall,diagnostic:"",duration_ms:duration,tests};
+  if(overall!=="Accepted"){
+    document.getElementById("aiBadge").innerHTML='<span class="ai-badge">!</span>';
+    explainWithAI();
+  }
+  btn.textContent="✓ Submit";renderResults();document.querySelectorAll("[data-console]").forEach(t=>t.classList.toggle("active",t.dataset.console==="result"));
+}
+document.getElementById("runBtn").onclick=runCode;
+document.getElementById("submitBtn").onclick=submitCode;
+
+document.getElementById("language").onchange=e=>{
+  const p=catalog[state.activeProblem];
+  codeEditor.value=starters[e.target.value](p);
+  codeHighlight.className=e.target.value==="C++"?"":"language-"+e.target.value.toLowerCase();
+  updateLines();
+};
+document.getElementById("resetCode").onclick=()=>{const p=catalog[state.activeProblem];codeEditor.value=starters[document.getElementById("language").value](p);updateLines()};
+document.getElementById("formatCode").onclick=()=>{
+  let indent=0,lines=codeEditor.value.split("\n").map(line=>{line=line.trim();if(line.startsWith("}")||line.startsWith("};"))indent=Math.max(0,indent-1);const out="    ".repeat(indent)+line;if(line.endsWith("{"))indent++;return out});codeEditor.value=lines.join("\n");updateLines();
+};
+
+document.querySelectorAll("[data-tab]").forEach(tab=>tab.onclick=()=>{
+  document.querySelectorAll("[data-tab]").forEach(t=>t.classList.remove("active"));tab.classList.add("active");
+  const key=tab.dataset.tab;
+  const p=catalog[state.activeProblem];
+  if(key==="description"){document.getElementById("problemBody").innerHTML=problemDescription(p)}
+  else{
+    const solution=p.accepted_solution;
+    if(solution&&solution.available){
+      const code=escapeHtml(solution.code);
+      document.getElementById("problemBody").innerHTML=`<h1>Solutions</h1><div class="settings-row"><span class="difficulty">${escapeHtml(solution.language||"C++")}</span><button class="icon-btn" id="copySolution">Copy</button></div><pre><code>${code}</code></pre>`;
+      document.getElementById("copySolution").onclick=()=>navigator.clipboard.writeText(solution.code);
+    }else{
+      document.getElementById("problemBody").innerHTML='<h1>Solutions</h1><p>No accepted solution source is available for this problem.</p>';
+    }
+  }
+});
+
+const overlay=document.getElementById("drawerOverlay");
+document.getElementById("drawerBtn").onclick=()=>overlay.classList.add("open");
+overlay.onclick=e=>{if(e.target===overlay)overlay.classList.remove("open")};
+function renderDrawer(filter=""){
+  const list=document.getElementById("drawerList");const q=filter.trim().toLowerCase();
+  list.innerHTML=catalog.map((p,index)=>({p,index})).filter(({p})=>p.title.toLowerCase().includes(q)||p.id.includes(q)||q==="").map(({p,index})=>`<button class="drawer-item ${index===state.activeProblem?"active":""}" data-index="${index}"><span>${p.id}. ${p.difficulty}</span>${escapeHtml(p.title)}</button>`).join("");
+  list.querySelectorAll("[data-index]").forEach(btn=>btn.onclick=()=>{overlay.classList.remove("open");loadProblem(Number(btn.dataset.index));});
+}
+renderDrawer();
+document.getElementById("drawerSearch").oninput=e=>renderDrawer(e.target.value);
+
+window.addEventListener("message",e=>{if(e.data&&e.data.type==="streamlit:rerun")location.reload()});
+
+document.querySelectorAll("[data-action]").forEach(btn=>{
+  btn.onclick=()=>{
+    const pane=document.getElementById(btn.dataset.pane),action=btn.dataset.action;
+    if(action==="minimize"){
+      const className=pane===problemPane?"collapsed-v":"collapsed-h";
+      pane.classList.toggle(className);
+      btn.textContent=pane.classList.contains(className)?"＋":"—";
+    }else{
+      const was=pane.classList.contains("maximize");
+      document.querySelectorAll(".pane,.editor-pane,.console-pane").forEach(p=>p.classList.remove("maximize","hidden-pane"));
+      document.querySelectorAll('[data-action="maximize"]').forEach(control=>control.textContent="⛶");
+      if(was){
+        document.getElementById("vResizer").classList.remove("hidden-pane");
+        document.getElementById("hResizer").classList.remove("hidden-pane");
+      }else{
+        pane.classList.add("maximize");
+        if(pane===problemPane){rightPane.classList.add("hidden-pane");document.getElementById("vResizer").classList.add("hidden-pane")}
+        if(pane===editorPane){problemPane.classList.add("hidden-pane");consolePane.classList.add("hidden-pane");document.getElementById("vResizer").classList.add("hidden-pane");document.getElementById("hResizer").classList.add("hidden-pane")}
+        if(pane===consolePane){problemPane.classList.add("hidden-pane");editorPane.classList.add("hidden-pane");document.getElementById("vResizer").classList.add("hidden-pane");document.getElementById("hResizer").classList.add("hidden-pane")}
+        btn.textContent="🗗";
+      }
+    }
+  }
+});
+
+function dragResizer(resizer,axis){
+  resizer.addEventListener("mousedown",start);
+  function start(e){
+    e.preventDefault();
+    resizer.classList.add("active");
+    document.body.style.cursor=axis==="x"?"col-resize":"row-resize";
+    const move=e2=>{
+      if(axis==="x"){
+        const rect=document.getElementById("workspace").getBoundingClientRect();
+        const pct=Math.max(22,Math.min(72,(e2.clientX-rect.left)/rect.width*100));
+        problemPane.style.width=pct+"%";rightPane.style.width=(100-pct)+"%";
+      }else{
+        const rect=rightPane.getBoundingClientRect();
+        const consoleHeight=Math.max(90,Math.min(rect.height-90,rect.bottom-e2.clientY));
+        consolePane.style.height=consoleHeight+"px";
+        editorPane.style.flex="1";
+      }
+    };
+    const up=()=>{
+      resizer.classList.remove("active");
+      document.body.style.cursor="";
+      window.removeEventListener("mousemove",move);
+      window.removeEventListener("mouseup",up);
+    };
+    window.addEventListener("mousemove",move);
+    window.addEventListener("mouseup",up);
+  }
+}
+dragResizer(document.getElementById("vResizer"),"x");
+dragResizer(document.getElementById("hResizer"),"y");
+</script>
+</body>
+</html>
+"""
+
+html = html.replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False))
+
+components.html(html, height=900, scrolling=False)

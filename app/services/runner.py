@@ -136,3 +136,19 @@ def analyze_cpp(code: str, test_cases: list[dict[str, str]]) -> dict[str, Any]:
     if not isinstance(response, dict) or "verdict" not in response:
         raise RunnerFailure("Runner response is missing its verdict")
     return response
+
+
+def run_cpp(code: str, stdin: str = "") -> dict[str, Any]:
+    result = analyze_cpp(
+        code,
+        [{"stdin": stdin, "expected_stdout": ""}],
+    )
+    tests = result.get("tests", [])
+    test = tests[0] if tests else {}
+    return {
+        "verdict": result.get("verdict"),
+        "stdout": test.get("stdout", ""),
+        "stderr": test.get("stderr", "") or result.get("diagnostic", ""),
+        "duration_ms": result.get("duration_ms"),
+        "diagnostic": result.get("diagnostic", ""),
+    }
