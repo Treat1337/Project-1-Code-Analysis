@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 import csv
 import html as html_stdlib
 import re
@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.config import (
     AI_API_KEY,
@@ -73,11 +74,23 @@ CODE_NET_METADATA = CODE_NET_ROOT / "metadata"
 CODE_NET_SOURCE = CODE_NET_ROOT / "data"
 
 
+INDEX_HTML_PATH = Path(__file__).resolve().parents[1] / "index.html"
+
+
+@app.get("/")
+def serve_index() -> FileResponse:
+    if INDEX_HTML_PATH.is_file():
+        return FileResponse(INDEX_HTML_PATH)
+    raise HTTPException(status_code=404, detail="index.html not found")
+
+
 class ApiRunRequest(BaseModel):
     problem_id: str
     language: str = "cpp"
     code: str = ""
     custom_input: str = ""
+    expected_output: Optional[str] = None
+    run_all: bool = False
 
 
 class ApiAiRequest(BaseModel):
@@ -87,6 +100,8 @@ class ApiAiRequest(BaseModel):
     failing_input: str = ""
     actual_output: str = ""
     expected_output: str = ""
+    stderr: str = ""
+    language: str = "cpp"
     model: str = "qwen2.5-coder:3b-instruct-q8_0"
 knowledge_base: KnowledgeBase = load_knowledge_base()
 classifier = CodeClassifier(
@@ -254,46 +269,61 @@ def api_problem_detail(problem_id: str) -> dict[str, object]:
     }
 
 
-def _normalize_output(value: str) -> str:
-    return value.strip()
+def _normalize_output(text: str) -> str:
+    if not text:
+        return ""
+    lines = [line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    return "\n".join(lines).strip()
 
 
-def _boilerplate_only(code: str) -> bool:
-    normalized = re.sub(r"\s+", "", code).lower()
-    if not normalized:
-        return True
-    cpp_patterns = (
-        "#include<bits/stdc++.h>",
-        "#include<iostream>",
-        "intmain(){}",
+def _is_unmodified_boilerplate(code: str, language: str) -> tuple[bool, str]:
+    if not code or not code.strip():
+        return True, "Empty Output"
+
+    lang = language.lower()
+    if lang in {"cpp", "c++", "c"}:
+        clean = re.sub(r"//.*", "", code)
+        clean = re.sub(r"/\*.*?\*/", "", clean, flags=re.S)
+    else:
+        clean = re.sub(r"#.*", "", code)
+        clean = re.sub(r'""".*?"""', "", clean, flags=re.S)
+        clean = re.sub(r"'''.*?'''", "", clean, flags=re.S)
+
+    clean_no_ws = re.sub(r"\s+", "", clean).lower()
+    if not clean_no_ws:
+        return True, "Empty Output"
+
+    starter_signatures = {
+        "#include<iostream>usingnamespacestd;intmain(){return0;}",
+        "#include<iostream>usingnamespacestd;intmain(){}",
+        "#include<bits/stdc++.h>usingnamespacestd;intmain(){return0;}",
+        "#include<bits/stdc++.h>intmain(){return0;}",
+        "#include<bits/stdc++.h>intmain(){}",
+        "usingnamespacestd;intmain(){return0;}",
+        "usingnamespacestd;intmain(){}",
         "intmain(){return0;}",
-    )
-    python_patterns = ("pass", "defsolve(self):pass")
-    return all(
-        pattern not in normalized
-        for pattern in ()
-    ) and (
-        normalized in cpp_patterns
-        or normalized in python_patterns
-        or len(normalized) < 20
-    )
+        "intmain(){}",
+        'importsysdefmain():passif__name__=="__main__":main()',
+        "importsysdefmain():passif__name__=='__main__':main()",
+        'defmain():passif__name__=="__main__":main()',
+        "defmain():passif__name__=='__main__':main()",
+        "defmain():pass",
+        "pass",
+    }
+    if clean_no_ws in starter_signatures:
+        return True, "Wrong Answer"
+    return False, ""
 
 
 @app.post("/api/run")
 def api_run(request: ApiRunRequest) -> dict[str, object]:
-    if not request.code.strip():
+    is_boiler, boiler_verdict = _is_unmodified_boilerplate(request.code, request.language)
+    if is_boiler:
         return {
-            "verdict": "Empty Output",
+            "verdict": boiler_verdict,
             "actual_output": "",
             "expected_output": "",
-            "stderr": "Code source is empty.",
-        }
-    if _boilerplate_only(request.code):
-        return {
-            "verdict": "Wrong Answer",
-            "actual_output": "",
-            "expected_output": "",
-            "stderr": "Submit an implementation instead of unchanged starter template.",
+            "stderr": "Submission is empty or contains unmodified starter template.",
         }
 
     test_cases = _load_test_cases(request.problem_id) if _valid_problem_id(request.problem_id) else []

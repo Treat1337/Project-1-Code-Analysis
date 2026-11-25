@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project_CodeNet Analysis & Runner</title>
+  <!-- Marked.js for Markdown rendering (with inline fallback) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --panel: #1a1a1a;
+      --panel-header: #262626;
+      --border: #333333;
+      --border-subtle: #242424;
+      --text: #eff1f6;
+      --text-muted: #8c8c8c;
+      --text-dim: #606060;
+      --green: #2cbb5d;
+      --green-bg: rgba(44, 187, 93, 0.12);
+      --red: #ef4743;
+      --red-bg: rgba(239, 71, 67, 0.12);
+      --yellow: #ffa116;
+      --yellow-bg: rgba(255, 161, 22, 0.12);
+      --blue: #3b82f6;
+      --blue-hover: #2563eb;
+      --editor-bg: #1e1e1e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      color: inherit;
+    }
+    button {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* App Shell */
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* Top Navigation Bar */
+    .topbar {
+      height: 48px;
+      flex: none;
+      background: #141414;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 10px;
+      z-index: 10;
+    }
+    .topbar-brand {
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ffa116;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #2a2a2a;
+      color: var(--text);
+    }
+    .btn-icon {
+      width: 32px;
+      padding: 0;
+    }
+    .btn-run {
+      background: #282828;
+      border-color: #3e3e3e;
+      color: #fff;
+      font-weight: 600;
+      padding: 0 14px;
+    }
+    .btn-run:hover {
+      background: #333333;
+    }
+    .btn-submit {
+      background: var(--green);
+      color: #07130a;
+      font-weight: 700;
+      padding: 0 16px;
+    }
+    .btn-submit:hover {
+      filter: brightness(1.1);
+    }
+    .top-problem-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
+    }
+    .prob-id-badge {
+      padding: 2px 7px;
+      background: #262626;
+      border: 1px solid #383838;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #ffa116;
+      font-weight: 600;
+    }
+    .spacer { flex: 1; }
+    .timer {
+      font-family: Consolas, monospace;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 0 6px;
+    }
+
+    /* Workspace */
+    .workspace {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      position: relative;
+      background: var(--bg);
+    }
+
+    /* Panels */
+    .pane {
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .left-pane {
+      width: 45%;
+      border-right: 1px solid var(--border);
+    }
+    .right-pane {
+      width: 55%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Resizers */
+    .vertical-resizer {
+      width: 6px;
+      flex: none;
+      background: #111;
+      cursor: col-resize;
+      border-left: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      transition: background 0.15s;
+      z-index: 20;
+    }
+    .vertical-resizer:hover, .vertical-resizer.active {
+      background: var(--blue);
+    }
+    .horizontal-resizer {
+      height: 6px;
+      flex: none;
+      background: #111;
+      cursor: row-resize;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s;
+      z-index: 20;
+    }
+    .horizontal-resizer:hover, .horizontal-resizer.active {
+      background: var(--blue);
+    }
+
+    /* Panel Header */
+    .pane-header {
+      height: 42px;
+      flex: none;
+      background: var(--panel-header);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 12px;
+    }
+    .tabs {
+      display: flex;
+      height: 100%;
+      gap: 4px;
+    }
+    .tab {
+      height: 100%;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .tab:hover {
+      color: var(--text);
+    }
+    .tab.active {
+      color: #fff;
+      border-bottom-color: var(--blue);
+      font-weight: 600;
+    }
+    .window-controls {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .control-btn {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .control-btn:hover {
+      background: #333;
+      color: #fff;
+    }
+
+    /* Left Pane Content */
+    .pane-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 20px 24px;
+      line-height: 1.6;
+    }
+    .problem-content h1 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .problem-content h2, .problem-content h3 {
+      font-size: 15px;
+      margin: 18px 0 8px;
+      color: #ddd;
+    }
+    .problem-content p {
+      margin-bottom: 12px;
+      color: #ccc;
+    }
+    .problem-content pre {
+      background: #222222;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 10px 0;
+      overflow-x: auto;
+      font-family: Consolas, monospace;
+      font-size: 12.5px;
+      color: #e6edf3;
+      line-height: 1.5;
+    }
+    .problem-content code {
+      font-family: Consolas, monospace;
+      background: #252525;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #ffa116;
+    }
+    .problem-content table {
+      border-collapse: collapse;
+      margin: 14px 0;
+      width: 100%;
+      border: 1px solid #333;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .problem-content th, .problem-content td {
+      border: 1px solid #333;
+      padding: 9px 12px;
+      text-align: left;
+    }
+    .problem-content th {
+      background: #252525;
+      color: #fff;
+      font-weight: 600;
+    }
+    .problem-content tr:nth-child(even) {
+      background: #1b1b1b;
+    }
+    .problem-content var {
+      font-style: italic;
+      font-family: "Times New Roman", Times, Georgia, serif;
+      font-size: 14px;
+      color: #e6edf3;
+      padding: 0 2px;
+    }
+    .problem-content sub, .problem-content sup {
+      font-size: 75%;
+      line-height: 0;
+      position: relative;
+      vertical-align: baseline;
+    }
+    .problem-content sub { bottom: -0.25em; }
+    .problem-content sup { top: -0.5em; }
+    .problem-content ul, .problem-content ol {
+      margin: 10px 0 14px 24px;
+      color: #ccc;
+    }
+    .problem-content li {
+      margin-bottom: 6px;
+    }
+    .problem-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      background: #fff;
+      padding: 6px;
+      margin: 10px 0;
+      display: inline-block;
+    }
+    .problem-content center {
+      margin: 12px 0;
+    }
+
+    /* Solutions Tab */
+    .solution-view {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .solution-meta-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #202020;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+    .badge-red { background: var(--red-bg); color: var(--red); }
+    .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+    .copy-btn {
+      margin-left: auto;
+      height: 28px;
+      padding: 0 10px;
+      font-size: 12px;
+      background: #2c2c2c;
+      border: 1px solid #404040;
+      border-radius: 4px;
+      color: #ddd;
+    }
+    .copy-btn:hover { background: #383838; color: #fff; }
+    .solution-code-block {
+      background: #1e1e1e;
+      border: 1px solid #2b2b2b;
+      border-radius: 6px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 21px;
+      color: #d4d4d4;
+      white-space: pre;
+    }
+
+    /* Right Pane - Top: Code Editor */
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 120px;
+      background: var(--editor-bg);
+    }
+    .editor-toolbar {
+      height: 38px;
+      flex: none;
+      background: #1c1c1c;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+    }
+    .select-dropdown {
+      height: 28px;
+      background: #262626;
+      border: 1px solid #3d3d3d;
+      border-radius: 5px;
+      color: #e0e0e0;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+    }
+    .editor-container {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      position: relative;
+      background: #1e1e1e;
+      overflow: hidden;
+    }
+    .line-numbers {
+      width: 48px;
+      flex: none;
+      background: #1e1e1e;
+      border-right: 1px solid #2b2b2b;
+      padding: 12px 0;
+      text-align: right;
+      color: #858585;
+      font-family: 'Consolas', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 21px;
+      user-select: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      z-index: 5;
+    }
+    .line-numbers span {
+      display: block;
+      height: 21px;
+      line-height: 21px;
+      padding-right: 10px;
+      flex: none;
+      color: #858585;
+      font-weight: 400;
+      transition: color 0.1s ease;
+    }
+    .line-numbers span.active-num {
+      color: #c6c6c6;
+      font-weight: 600;
+    }
+    .editor-workspace {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #1e1e1e;
+    }
+    .active-line-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 21px;
+      background: #2a2d2e;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      box-sizing: border-box;
+      pointer-events: none;
+      display: none;
+      z-index: 1;
+    }
+    .code-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 12px 14px;
+      box-sizing: border-box;
+      background: transparent;
+      color: #d4d4d4;
+      font-family: 'Consolas', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 21px;
+      letter-spacing: 0;
+      white-space: pre;
+      word-wrap: normal;
+      word-break: normal;
+      tab-size: 4;
+      -moz-tab-size: 4;
+      overflow: hidden;
+      pointer-events: none;
+      user-select: none;
+      z-index: 2;
+    }
+    .code-highlight code {
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      white-space: inherit;
+      tab-size: inherit;
+      background: transparent !important;
+      padding: 0 !important;
+      color: inherit;
+      display: block;
+    }
+    .code-textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 12px 14px;
+      box-sizing: border-box;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: transparent;
+      caret-color: #aeafad;
+      font-family: 'Consolas', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 21px;
+      letter-spacing: 0;
+      white-space: pre;
+      word-wrap: normal;
+      word-break: normal;
+      tab-size: 4;
+      -moz-tab-size: 4;
+      resize: none;
+      overflow: auto;
+      z-index: 3;
+    }
+    .code-textarea::selection {
+      background: rgba(38, 79, 120, 0.75);
+      color: transparent;
+    }
+
+    /* VS Code Dark+ Syntax Tokens */
+    .tok-comment { color: #6a9955; font-style: italic; }
+    .tok-preprocessor { color: #c586c0; font-weight: normal; }
+    .tok-control { color: #c586c0; font-weight: normal; }
+    .tok-type { color: #569cd6; }
+    .tok-stl { color: #4ec9b0; }
+    .tok-func { color: #dcdcaa; }
+    .tok-string { color: #ce9178; }
+    .tok-number { color: #b5cea8; }
+    .tok-operator { color: #d4d4d4; }
+    .tok-ident { color: #d4d4d4; }
+
+    /* Right Pane - Bottom: Console */
+    .console-pane {
+      height: 280px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+    }
+    .console-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 14px 18px;
+    }
+    .ai-badge-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      margin-left: 6px;
+      box-shadow: 0 0 8px rgba(239, 71, 67, 0.6);
+      animation: pulse-badge 1.8s infinite;
+    }
+    @keyframes pulse-badge {
+      0% { transform: scale(1); box-shadow: 0 0 4px rgba(239, 71, 67, 0.4); }
+      50% { transform: scale(1.1); box-shadow: 0 0 10px rgba(239, 71, 67, 0.8); }
+      100% { transform: scale(1); box-shadow: 0 0 4px rgba(239, 71, 67, 0.4); }
+    }
+
+    /* Testcase View */
+    .case-pills-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .case-pill {
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 6px;
+      border: 1px solid #363636;
+      background: #222;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .case-pill:hover {
+      background: #2c2c2c;
+      color: #fff;
+    }
+    .case-pill.active {
+      background: #2a384c;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .case-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .field-textarea {
+      width: 100%;
+      min-height: 85px;
+      padding: 8px 10px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #141414;
+      color: #f0f0f0;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      resize: vertical;
+    }
+
+    /* Test Result View */
+    .result-card {
+      background: #202020;
+      border: 1px solid #343434;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--text-muted);
+    }
+    .result-card.accepted {
+      border-left-color: var(--green);
+      background: #18231a;
+    }
+    .result-card.wrong {
+      border-left-color: var(--red);
+      background: #261b1b;
+    }
+    .result-card.error {
+      border-left-color: var(--red);
+      background: #261b1b;
+    }
+    .result-card.tle {
+      border-left-color: var(--yellow);
+      background: #26221b;
+    }
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .result-verdict {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .result-meta {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .output-diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .output-box {
+      background: #141414;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 150px;
+      overflow-y: auto;
+      color: #e6edf3;
+    }
+    .stderr-box {
+      margin-top: 10px;
+      background: #1f1414;
+      border: 1px solid #4a2424;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #ff9999;
+      white-space: pre-wrap;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    /* AI Feedback View */
+    .ai-card {
+      background: #1b1b1b;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px 18px;
+      line-height: 1.6;
+    }
+    .ai-header-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .ai-header-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffa116;
+    }
+    .ai-markdown {
+      font-size: 13px;
+      color: #ddd;
+    }
+    .ai-markdown h1, .ai-markdown h2, .ai-markdown h3 {
+      font-size: 14px;
+      color: #fff;
+      margin: 12px 0 6px;
+    }
+    .ai-markdown p {
+      margin-bottom: 10px;
+    }
+    .ai-markdown ul, .ai-markdown ol {
+      margin: 6px 0 10px 20px;
+    }
+    .ai-markdown li {
+      margin-bottom: 4px;
+    }
+    .ai-markdown pre {
+      background: #121212;
+      border: 1px solid #2c2c2c;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 8px 0;
+      overflow-x: auto;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #e6edf3;
+    }
+    .ai-markdown code {
+      font-family: Consolas, monospace;
+      background: #242424;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #ffa116;
+    }
+
+    /* Loading Spinner & Skeletons */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .skeleton-bar {
+      height: 12px;
+      background: linear-gradient(90deg, #242424 25%, #333333 50%, #242424 75%);
+      background-size: 200% 100%;
+      border-radius: 4px;
+      margin: 10px 0;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Problem Drawer */
+    .drawer-backdrop {
+      position: absolute;
+      inset: 48px 0 0 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 100;
+      display: none;
+      backdrop-filter: blur(2px);
+    }
+    .drawer-backdrop.open {
+      display: block;
+    }
+    .drawer-panel {
+      width: 360px;
+      height: 100%;
+      background: #181818;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+    .drawer-header {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .drawer-search-input {
+      height: 34px;
+      background: #242424;
+      border: 1px solid #3c3c3c;
+      border-radius: 6px;
+      padding: 0 10px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+    .drawer-search-input:focus {
+      border-color: var(--blue);
+    }
+    .drawer-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+    }
+    .drawer-item {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      text-align: left;
+      padding: 9px 12px;
+      border-radius: 6px;
+      border: 0;
+      background: transparent;
+      color: #ddd;
+      transition: background 0.15s;
+    }
+    .drawer-item:hover {
+      background: #2a2a2a;
+    }
+    .drawer-item.active {
+      background: #2a384c;
+      color: #fff;
+    }
+    .drawer-item-id {
+      font-size: 11px;
+      color: #ffa116;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .drawer-item-title {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Window Control States */
+    .collapsed-v {
+      width: 44px !important;
+      min-width: 44px !important;
+    }
+    .collapsed-v .pane-body,
+    .collapsed-v .tabs,
+    .collapsed-v .pane-header .title {
+      display: none !important;
+    }
+    .collapsed-v .pane-header {
+      padding: 0;
+      justify-content: center;
+    }
+    .collapsed-h {
+      height: 42px !important;
+      min-height: 42px !important;
+      flex: none !important;
+    }
+    .collapsed-h .console-body,
+    .collapsed-h .editor-container,
+    .collapsed-h .editor-toolbar {
+      display: none !important;
+    }
+    .maximized {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 50 !important;
+    }
+    .hidden-pane {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Navigation Bar -->
+    <header class="topbar">
+      <button class="btn" id="btnDrawer">☰ Problem List</button>
+      <button class="btn btn-icon" id="btnPrev" title="Previous Problem">‹</button>
+      <button class="btn btn-icon" id="btnNext" title="Next Problem">›</button>
+      <button class="btn" id="btnRandom" title="Pick Random Problem">🔀 Random</button>
+
+      <div class="top-problem-info">
+        <span class="prob-id-badge" id="topProblemId">p00001</span>
+        <span id="topProblemTitle">Loading problem...</span>
+      </div>
+
+      <div class="spacer"></div>
+
+      <button class="btn btn-run" id="btnRun">▶ Run</button>
+      <button class="btn btn-submit" id="btnSubmit">✓ Submit</button>
+      <span class="timer" id="topTimer">00:00</span>
+    </header>
+
+    <!-- Workspace -->
+    <main class="workspace" id="workspace">
+      <!-- Left Pane: Problem & Solutions ONLY (Strictly NO Editorial / Submissions) -->
+      <section class="pane left-pane" id="leftPane">
+        <div class="pane-header">
+          <div class="tabs" id="leftTabs">
+            <button class="tab active" data-tab="description">Description</button>
+            <button class="tab" data-tab="solutions">Solutions</button>
+          </div>
+          <div class="window-controls">
+            <button class="control-btn" data-action="collapse" data-target="leftPane" title="Collapse">—</button>
+            <button class="control-btn" data-action="maximize" data-target="leftPane" title="Maximize">⛶</button>
+          </div>
+        </div>
+        <div class="pane-body problem-content" id="leftBody">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Vertical Resizer -->
+      <div class="vertical-resizer" id="vResizer"></div>
+
+      <!-- Right Pane: Code Editor + Console -->
+      <section class="pane right-pane" id="rightPane">
+        <!-- Top: Code Editor -->
+        <section class="editor-pane" id="editorPane">
+          <div class="pane-header">
+            <span style="font-weight: 600; color: #ffa116; display: flex; align-items: center; gap: 6px;">
+              ‹ / › Code
+            </span>
+            <div class="window-controls">
+              <button class="control-btn" data-action="collapse" data-target="editorPane" title="Collapse">—</button>
+              <button class="control-btn" data-action="maximize" data-target="editorPane" title="Maximize">⛶</button>
+            </div>
+          </div>
+          <div class="editor-toolbar">
+            <select class="select-dropdown" id="langSelect">
+              <option value="C++">C++</option>
+            </select>
+            <button class="btn" id="btnResetCode" style="height: 28px; padding: 0 8px; font-size: 12px;">↺ Reset</button>
+            <button class="btn" id="btnFormatCode" style="height: 28px; padding: 0 8px; font-size: 12px;">Format</button>
+            <div class="spacer"></div>
+          </div>
+          <div class="editor-container" id="editorContainer">
+            <div class="line-numbers" id="lineNumbers"><span>1</span></div>
+            <div class="editor-workspace" id="editorWorkspace">
+              <div class="active-line-indicator" id="activeLineIndicator"></div>
+              <pre class="code-highlight" id="codeHighlight" aria-hidden="true"><code id="codeHighlightContent"></code></pre>
+              <textarea class="code-textarea" id="codeEditor" spellcheck="false" wrap="off"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Horizontal Resizer -->
+        <div class="horizontal-resizer" id="hResizer"></div>
+
+        <!-- Bottom: Console Pane (Testcase, Test Result, AI Feedback) -->
+        <section class="console-pane" id="consolePane">
+          <div class="pane-header">
+            <div class="tabs" id="consoleTabs">
+              <button class="tab active" data-console="testcase">Testcase</button>
+              <button class="tab" data-console="result">Test Result</button>
+              <button class="tab" data-console="ai">
+                AI Feedback
+                <span id="aiBadgeContainer"></span>
+              </button>
+            </div>
+            <div class="window-controls">
+              <button class="control-btn" data-action="collapse" data-target="consolePane" title="Collapse">—</button>
+              <button class="control-btn" data-action="maximize" data-target="consolePane" title="Maximize">⛶</button>
+            </div>
+          </div>
+          <div class="console-body" id="consoleBody">
+            <!-- Populated dynamically -->
+          </div>
+        </section>
+      </section>
+
+      <!-- Slide-out Problem Drawer -->
+      <div class="drawer-backdrop" id="drawerBackdrop">
+        <aside class="drawer-panel" id="drawerPanel">
+          <div class="drawer-header">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <strong style="font-size: 14px;">Problem List</strong>
+              <button class="control-btn" id="btnCloseDrawer">✕</button>
+            </div>
+            <input type="text" class="drawer-search-input" id="drawerSearch" placeholder="Search problem ID or title...">
+          </div>
+          <div class="drawer-list" id="drawerList"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------------------
+    // Application State
+    // -------------------------------------------------------------------------
+    const API_BASE = (window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null")
+      ? "http://127.0.0.1:8000"
+      : "";
+    const state = {
+      problems: [],
+      currentProblemId: "p00001",
+      problemDetail: null,
+      activeLeftTab: "description",
+      activeConsoleTab: "testcase",
+      activeCaseIndex: 0,
+      cases: [],
+      code: "",
+      language: "C++",
+      lastRunResult: null,
+      aiLoading: false,
+      aiFeedback: "",
+      aiError: "",
+    };
+
+    // Clean default C++ starter template (C++ only)
+    const starterTemplates = {
+      "C++": `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    
+    return 0;
+}
+`,
+    };
+
+    // DOM Elements
+    const leftPane = document.getElementById("leftPane");
+    const rightPane = document.getElementById("rightPane");
+    const editorPane = document.getElementById("editorPane");
+    const consolePane = document.getElementById("consolePane");
+    const codeEditor = document.getElementById("codeEditor");
+    const codeHighlight = document.getElementById("codeHighlight");
+    const codeHighlightContent = document.getElementById("codeHighlightContent");
+    const activeLineIndicator = document.getElementById("activeLineIndicator");
+    const editorWorkspace = document.getElementById("editorWorkspace");
+    const lineNumbers = document.getElementById("lineNumbers");
+    const langSelect = document.getElementById("langSelect");
+    const leftBody = document.getElementById("leftBody");
+    const consoleBody = document.getElementById("consoleBody");
+    const topProblemId = document.getElementById("topProblemId");
+    const topProblemTitle = document.getElementById("topProblemTitle");
+    const drawerBackdrop = document.getElementById("drawerBackdrop");
+    const drawerList = document.getElementById("drawerList");
+    const drawerSearch = document.getElementById("drawerSearch");
+    const aiBadgeContainer = document.getElementById("aiBadgeContainer");
+
+    // -------------------------------------------------------------------------
+    // Markdown & String Utilities
+    // -------------------------------------------------------------------------
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return "";
+      if (window.marked && typeof window.marked.parse === "function") {
+        try {
+          return window.marked.parse(text);
+        } catch (e) {
+          console.warn("marked.parse error, using fallback", e);
+        }
+      }
+      let html = escapeHtml(text);
+      html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+      html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+      html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+      html = html.replace(/\*\*(.*?)\*\*/gim, "<strong>$1</strong>");
+      html = html.replace(/\*(.*?)\*/gim, "<em>$1</em>");
+      html = html.replace(/```([a-z0-9]*)\n([\s\S]*?)```/gim, "<pre><code>$2</code></pre>");
+      html = html.replace(/`([^`]+)`/gim, "<code>$1</code>");
+      html = html.replace(/^\- (.*$)/gim, "<ul><li>$1</li></ul>");
+      html = html.replace(/\n\n/gim, "<br><br>");
+      return html;
+    }
+
+    // -------------------------------------------------------------------------
+    // C++ Syntax Highlighting (VS Code Dark+ Palette)
+    // -------------------------------------------------------------------------
+    function highlightCpp(code) {
+      if (!code) return "";
+
+      const controlKeywords = new Set([
+        "if", "else", "for", "while", "do", "return", "break", "continue", "switch", "case",
+        "default", "goto", "try", "catch", "throw"
+      ]);
+
+      const typeKeywords = new Set([
+        "int", "long", "double", "float", "char", "bool", "void", "auto", "const", "static",
+        "struct", "class", "using", "namespace", "true", "false", "unsigned", "signed",
+        "short", "constexpr", "inline", "virtual", "public", "private", "protected",
+        "template", "typename", "typedef", "sizeof", "new", "delete", "explicit", "friend",
+        "operator", "this", "enum", "union", "volatile", "mutable"
+      ]);
+
+      const stlKeywords = new Set([
+        "std", "vector", "string", "map", "set", "pair", "queue", "stack", "deque", "list",
+        "priority_queue", "unordered_map", "unordered_set", "multiset", "multimap",
+        "bitset", "array", "tuple", "cout", "cin", "cerr", "clog", "endl", "nullptr",
+        "size_t", "int64_t", "uint64_t", "int32_t", "uint32_t", "int16_t", "uint16_t",
+        "int8_t", "uint8_t", "ptrdiff_t", "stringstream", "ifstream", "ofstream", "iostream"
+      ]);
+
+      const knownFunctions = new Set([
+        "main", "solve", "sort", "reverse", "push_back", "emplace_back", "pop_back",
+        "size", "empty", "clear", "begin", "end", "rbegin", "rend", "front", "back",
+        "top", "pop", "push", "insert", "erase", "find", "count", "lower_bound", "upper_bound",
+        "min", "max", "abs", "swap", "make_pair", "make_tuple", "get", "fill", "memset",
+        "memcpy", "printf", "scanf", "puts", "getline", "gcd", "lcm", "sqrt", "pow"
+      ]);
+
+      const tokenRegex = /(\/\*[\s\S]*?\*\/)|(\/\/[^\n]*)|("(?:\\.|[^"\\])*")|('(?:\\.|[^'\\])*')|(^[ \t]*#[ \t]*[a-zA-Z_]\w*(?:[ \t]*<[^>\n]+>)?|[ \t]*#[ \t]*[a-zA-Z_]\w*(?:[ \t]*<[^>\n]+>)?)|(\b(?:0x[0-9a-fA-F]+|0b[01]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?[fFuUlL]*)\b)|([a-zA-Z_]\w*)|(<<|>>|<=|>=|==|!=|\+\+|--|&&|\|\||::|->|[+\-*/%<>=!&|^~?:;.,\[\]{}()])|(\s+)|(.)/gm;
+
+      let html = "";
+      let match;
+      while ((match = tokenRegex.exec(code)) !== null) {
+        const [
+          full,
+          commentBlock,
+          commentLine,
+          strLiteral,
+          charLiteral,
+          preproc,
+          numLiteral,
+          ident,
+          operator,
+          whitespace,
+          other
+        ] = match;
+
+        if (commentBlock || commentLine) {
+          html += `<span class="tok-comment">${escapeHtml(full)}</span>`;
+        } else if (strLiteral || charLiteral) {
+          html += `<span class="tok-string">${escapeHtml(full)}</span>`;
+        } else if (preproc) {
+          const incMatch = full.match(/^([ \t]*#[ \t]*\w+)([ \t]*)(<[^>\n]+>)?(.*)$/);
+          if (incMatch) {
+            html += `<span class="tok-preprocessor">${escapeHtml(incMatch[1])}</span>`;
+            if (incMatch[2]) html += escapeHtml(incMatch[2]);
+            if (incMatch[3]) html += `<span class="tok-string">${escapeHtml(incMatch[3])}</span>`;
+            if (incMatch[4]) html += escapeHtml(incMatch[4]);
+          } else {
+            html += `<span class="tok-preprocessor">${escapeHtml(full)}</span>`;
+          }
+        } else if (numLiteral) {
+          html += `<span class="tok-number">${escapeHtml(full)}</span>`;
+        } else if (ident) {
+          const afterPos = tokenRegex.lastIndex;
+          const isCall = /^[ \t]*\(/.test(code.slice(afterPos));
+
+          if (controlKeywords.has(ident)) {
+            html += `<span class="tok-control">${escapeHtml(ident)}</span>`;
+          } else if (typeKeywords.has(ident)) {
+            html += `<span class="tok-type">${escapeHtml(ident)}</span>`;
+          } else if (stlKeywords.has(ident)) {
+            html += `<span class="tok-stl">${escapeHtml(ident)}</span>`;
+          } else if (isCall || knownFunctions.has(ident)) {
+            html += `<span class="tok-func">${escapeHtml(ident)}</span>`;
+          } else {
+            html += `<span class="tok-ident">${escapeHtml(ident)}</span>`;
+          }
+        } else if (operator) {
+          html += `<span class="tok-operator">${escapeHtml(operator)}</span>`;
+        } else if (whitespace) {
+          html += escapeHtml(whitespace);
+        } else if (other) {
+          html += escapeHtml(other);
+        }
+      }
+
+      if (code.endsWith("\n")) {
+        html += " ";
+      }
+
+      return html;
+    }
+
+    // -------------------------------------------------------------------------
+    // Code Editor Utilities & Synchronization
+    // -------------------------------------------------------------------------
+    function updateHighlight() {
+      if (codeHighlightContent) {
+        codeHighlightContent.innerHTML = highlightCpp(codeEditor.value);
+      }
+    }
+
+    function updateLineNumbers() {
+      const lines = codeEditor.value.split("\n").length;
+      let html = "";
+      for (let i = 1; i <= lines; i++) {
+        html += `<span>${i}</span>`;
+      }
+      lineNumbers.innerHTML = html;
+      lineNumbers.scrollTop = codeEditor.scrollTop;
+    }
+
+    function updateActiveLine() {
+      const code = codeEditor.value;
+      const pos = codeEditor.selectionStart || 0;
+      const lineIdx = code.substring(0, pos).split("\n").length - 1;
+
+      // Update gutter active line number highlight
+      const spans = lineNumbers.querySelectorAll("span");
+      spans.forEach((s, idx) => {
+        s.classList.toggle("active-num", idx === lineIdx);
+      });
+
+      // Update editor workspace active line highlight bar
+      if (activeLineIndicator) {
+        const top = 12 + lineIdx * 21 - codeEditor.scrollTop;
+        if (top >= -21 && top <= (editorWorkspace?.clientHeight || 600) + 21) {
+          activeLineIndicator.style.display = "block";
+          activeLineIndicator.style.top = `${top}px`;
+        } else {
+          activeLineIndicator.style.display = "none";
+        }
+      }
+    }
+
+    function updateEditor() {
+      updateLineNumbers();
+      updateHighlight();
+      updateActiveLine();
+    }
+
+    codeEditor.addEventListener("input", () => {
+      state.code = codeEditor.value;
+      updateEditor();
+    });
+
+    codeEditor.addEventListener("scroll", () => {
+      if (codeHighlight) {
+        codeHighlight.scrollTop = codeEditor.scrollTop;
+        codeHighlight.scrollLeft = codeEditor.scrollLeft;
+      }
+      lineNumbers.scrollTop = codeEditor.scrollTop;
+      updateActiveLine();
+    });
+
+    ["click", "keyup", "focus", "select"].forEach((evt) => {
+      codeEditor.addEventListener(evt, updateActiveLine);
+    });
+
+    // Tab key inserts 4 spaces
+    codeEditor.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = codeEditor.selectionStart;
+        const end = codeEditor.selectionEnd;
+        codeEditor.value = codeEditor.value.substring(0, start) + "    " + codeEditor.value.substring(end);
+        codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
+        state.code = codeEditor.value;
+        updateEditor();
+      }
+    });
+
+    // Language Change
+    langSelect.addEventListener("change", (e) => {
+      state.language = e.target.value;
+      state.code = starterTemplates[state.language] || "";
+      codeEditor.value = state.code;
+      updateEditor();
+    });
+
+    // Reset Code
+    document.getElementById("btnResetCode").addEventListener("click", () => {
+      if (confirm("Reset code editor to starter template?")) {
+        state.code = starterTemplates[state.language] || "";
+        codeEditor.value = state.code;
+        updateEditor();
+      }
+    });
+
+    // Format Code (Simple Indentation)
+    document.getElementById("btnFormatCode").addEventListener("click", () => {
+      const lines = codeEditor.value.split("\n");
+      let indent = 0;
+      const formatted = lines.map((line) => {
+        let trimmed = line.trim();
+        if (trimmed.startsWith("}") || trimmed.startsWith("};")) {
+          indent = Math.max(0, indent - 1);
+        }
+        const indented = "    ".repeat(indent) + trimmed;
+        if (trimmed.endsWith("{")) {
+          indent++;
+        }
+        return indented;
+      });
+      codeEditor.value = formatted.join("\n");
+      state.code = codeEditor.value;
+      updateEditor();
+    });
+
+    // -------------------------------------------------------------------------
+    // Problem Loading & Rendering
+    // -------------------------------------------------------------------------
+    async function loadProblemList() {
+      try {
+        const res = await fetch(`${API_BASE}/api/problems`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        state.problems = data.problems || [];
+        renderDrawerList();
+
+        // Check URL query param or default to p00001
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryPid = urlParams.get("problem");
+        const initialPid = (queryPid && state.problems.some((p) => p.problem_id === queryPid))
+          ? queryPid
+          : (state.problems[0]?.problem_id || "p00001");
+
+        loadProblem(initialPid);
+      } catch (err) {
+        console.error("Failed to load problem list:", err);
+        leftBody.innerHTML = `<div class="result-card error"><strong>Error loading problems:</strong><p>${err.message}</p></div>`;
+      }
+    }
+
+    async function loadProblem(problemId) {
+      state.currentProblemId = problemId;
+      topProblemId.textContent = problemId;
+      topProblemTitle.textContent = "Loading...";
+      leftBody.innerHTML = `<div style="padding: 20px;"><div class="spinner"></div> Loading ${problemId}...</div>`;
+
+      // Update URL
+      const url = new URL(window.location);
+      url.searchParams.set("problem", problemId);
+      window.history.replaceState({}, "", url);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/problem/${problemId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const detail = await res.json();
+        state.problemDetail = detail;
+
+        topProblemTitle.textContent = detail.title || problemId;
+
+        // Populate test cases
+        if (detail.test_cases && detail.test_cases.length > 0) {
+          state.cases = detail.test_cases.map((c, i) => ({
+            name: c.name || `Case ${i + 1}`,
+            stdin: c.stdin || "",
+            expected_stdout: c.expected_stdout || "",
+          }));
+        } else {
+          state.cases = [{ name: "Case 1", stdin: "", expected_stdout: "" }];
+        }
+        state.activeCaseIndex = 0;
+
+        // Reset starter template if editor is empty or unchanged
+        state.code = starterTemplates[state.language] || "";
+        codeEditor.value = state.code;
+        updateEditor();
+
+        // Reset execution results & AI feedback
+        state.lastRunResult = null;
+        state.aiFeedback = "";
+        state.aiError = "";
+        aiBadgeContainer.innerHTML = "";
+
+        renderLeftPane();
+        renderConsole();
+        renderDrawerList();
+      } catch (err) {
+        topProblemTitle.textContent = "Error loading problem";
+        leftBody.innerHTML = `<div class="result-card error"><strong>Failed to load problem ${problemId}:</strong><p>${err.message}</p></div>`;
+      }
+    }
+
+    // Render Left Pane (Description vs Solutions)
+    function renderLeftPane() {
+      if (state.activeLeftTab === "description") {
+        if (!state.problemDetail) return;
+        leftBody.innerHTML = state.problemDetail.html || `<p>${escapeHtml(state.problemDetail.plain_text || "")}</p>`;
+      } else if (state.activeLeftTab === "solutions") {
+        const sol = state.problemDetail?.accepted_solution;
+        if (sol && sol.available) {
+          leftBody.innerHTML = `
+            <div class="solution-view">
+              <div class="solution-meta-bar">
+                <span class="badge badge-green">✓ Accepted Solution</span>
+                <span class="badge badge-blue">${escapeHtml(sol.language || "C++")}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Submission: <code>${escapeHtml(sol.submission_id || "")}</code></span>
+                <button class="copy-btn" id="btnCopySolution">📋 Copy Code</button>
+              </div>
+              <pre class="solution-code-block"><code id="solutionCode">${highlightCpp(sol.code || "")}</code></pre>
+            </div>
+          `;
+          document.getElementById("btnCopySolution").addEventListener("click", () => {
+            navigator.clipboard.writeText(sol.code || "");
+            const btn = document.getElementById("btnCopySolution");
+            btn.textContent = "✓ Copied!";
+            setTimeout(() => { btn.textContent = "📋 Copy Code"; }, 2000);
+          });
+        } else {
+          leftBody.innerHTML = `
+            <div class="result-card" style="border-left-color: var(--yellow);">
+              <strong style="color: var(--yellow);">Accepted Solution Not Available</strong>
+              <p style="margin-top: 6px; color: #bbb;">${escapeHtml(sol?.reason || "No accepted source submission found for this problem.")}</p>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Left Tabs Switching
+    document.querySelectorAll("#leftTabs .tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll("#leftTabs .tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        state.activeLeftTab = tab.dataset.tab;
+        renderLeftPane();
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Console Rendering (Testcase, Test Result, AI Feedback)
+    // -------------------------------------------------------------------------
+    function renderConsole() {
+      if (state.activeConsoleTab === "testcase") {
+        renderTestcaseTab();
+      } else if (state.activeConsoleTab === "result") {
+        renderResultTab();
+      } else if (state.activeConsoleTab === "ai") {
+        renderAITab();
+      }
+    }
+
+    function renderTestcaseTab() {
+      let pillsHtml = state.cases
+        .map((c, i) => `
+          <button class="case-pill ${i === state.activeCaseIndex ? "active" : ""}" data-case-index="${i}">
+            ${escapeHtml(c.name)}
+          </button>
+        `)
+        .join("");
+      pillsHtml += `<button class="case-pill" id="btnAddCase" title="Add Custom Test Case">+</button>`;
+
+      const cur = state.cases[state.activeCaseIndex] || { stdin: "", expected_stdout: "" };
+
+      consoleBody.innerHTML = `
+        <div class="case-pills-row">${pillsHtml}</div>
+        <div class="case-grid">
+          <div class="field-group">
+            <label class="field-label">Input</label>
+            <textarea class="field-textarea" id="caseInput">${escapeHtml(cur.stdin)}</textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Expected Output</label>
+            <textarea class="field-textarea" id="caseExpected">${escapeHtml(cur.expected_stdout)}</textarea>
+          </div>
+        </div>
+      `;
+
+      // Event handlers for case pills
+      consoleBody.querySelectorAll("[data-case-index]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          saveCurrentCaseInputs();
+          state.activeCaseIndex = Number(btn.dataset.caseIndex);
+          renderTestcaseTab();
+        });
+      });
+
+      // Add custom case
+      document.getElementById("btnAddCase").addEventListener("click", () => {
+        saveCurrentCaseInputs();
+        state.cases.push({
+          name: `Case ${state.cases.length + 1}`,
+          stdin: "",
+          expected_stdout: "",
+        });
+        state.activeCaseIndex = state.cases.length - 1;
+        renderTestcaseTab();
+      });
+
+      // Realtime input updating
+      const inEl = document.getElementById("caseInput");
+      const outEl = document.getElementById("caseExpected");
+      inEl.addEventListener("input", () => {
+        if (state.cases[state.activeCaseIndex]) {
+          state.cases[state.activeCaseIndex].stdin = inEl.value;
+        }
+      });
+      outEl.addEventListener("input", () => {
+        if (state.cases[state.activeCaseIndex]) {
+          state.cases[state.activeCaseIndex].expected_stdout = outEl.value;
+        }
+      });
+    }
+
+    function saveCurrentCaseInputs() {
+      const inEl = document.getElementById("caseInput");
+      const outEl = document.getElementById("caseExpected");
+      if (inEl && state.cases[state.activeCaseIndex]) {
+        state.cases[state.activeCaseIndex].stdin = inEl.value;
+      }
+      if (outEl && state.cases[state.activeCaseIndex]) {
+        state.cases[state.activeCaseIndex].expected_stdout = outEl.value;
+      }
+    }
+
+    function renderResultTab() {
+      if (!state.lastRunResult) {
+        consoleBody.innerHTML = `
+          <div style="padding: 18px 0; color: var(--text-muted); text-align: center;">
+            <p>You must run your code first to see execution results.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const res = state.lastRunResult;
+      const verdict = res.verdict || "Unknown";
+      let toneClass = "wrong";
+      let verdictColor = "var(--red)";
+
+      if (verdict === "Accepted") {
+        toneClass = "accepted";
+        verdictColor = "var(--green)";
+      } else if (verdict === "Time Limit Exceeded") {
+        toneClass = "tle";
+        verdictColor = "var(--yellow)";
+      } else if (verdict === "Compilation Error" || verdict === "Runtime Error") {
+        toneClass = "error";
+      }
+
+      let summaryHtml = "";
+      if (res.tests && res.tests.length > 0) {
+        summaryHtml = `<span style="margin-left: 8px;">Passed ${res.passed_count}/${res.total_count} test cases</span>`;
+      }
+
+      let diffHtml = "";
+      if (res.actual_output !== undefined || res.expected_output !== undefined) {
+        diffHtml = `
+          <div class="output-diff-grid">
+            <div>
+              <div class="field-label">Your Stdout:</div>
+              <div class="output-box">${escapeHtml(res.actual_output || "(empty)")}</div>
+            </div>
+            <div>
+              <div class="field-label">Expected Output:</div>
+              <div class="output-box">${escapeHtml(res.expected_output || "(empty)")}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      let stderrHtml = "";
+      if (res.stderr) {
+        stderrHtml = `
+          <div class="field-label" style="margin-top: 10px; color: #ff8888;">Error Diagnostic / Compiler Output:</div>
+          <div class="stderr-box">${escapeHtml(res.stderr)}</div>
+        `;
+      }
+
+      let aiActionHtml = "";
+      if (verdict !== "Accepted") {
+        aiActionHtml = `
+          <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid #333;">
+            <span style="color: #ffa116; font-size: 12px;">AI analysis in progress...</span>
+            <button class="btn btn-run" id="btnGoToAI" style="height: 28px; padding: 0 10px; font-size: 12px;">
+              View AI Feedback →
+            </button>
+          </div>
+        `;
+      }
+
+      consoleBody.innerHTML = `
+        <div class="result-card ${toneClass}">
+          <div class="result-header">
+            <span class="result-verdict" style="color: ${verdictColor};">${escapeHtml(verdict)}</span>
+            <span class="result-meta">Runtime: ${res.duration_ms ?? 0} ms ${summaryHtml}</span>
+          </div>
+          ${diffHtml}
+          ${stderrHtml}
+          ${aiActionHtml}
+        </div>
+      `;
+
+      const btnGoToAI = document.getElementById("btnGoToAI");
+      if (btnGoToAI) {
+        btnGoToAI.addEventListener("click", () => {
+          switchConsoleTab("ai");
+        });
+      }
+    }
+
+    function renderAITab() {
+      if (state.aiLoading) {
+        consoleBody.innerHTML = `
+          <div class="ai-card">
+            <div class="ai-header-bar">
+              <div class="spinner"></div>
+              <span class="ai-header-title">Analyzing code with AI...</span>
+            </div>
+            <div class="skeleton-bar" style="width: 85%;"></div>
+            <div class="skeleton-bar" style="width: 95%;"></div>
+            <div class="skeleton-bar" style="width: 70%;"></div>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.aiError) {
+        consoleBody.innerHTML = `
+          <div class="ai-card" style="border-left: 3px solid var(--red);">
+            <div class="ai-header-bar">
+              <span class="ai-header-title" style="color: var(--red);">AI Feedback Unavailable</span>
+              <button class="btn btn-run" id="btnRetryAI" style="margin-left: auto; height: 26px; font-size: 11px;">↺ Retry</button>
+            </div>
+            <p style="color: #ff9999; margin-bottom: 8px;">${escapeHtml(state.aiError)}</p>
+            <div style="background: #141414; padding: 8px; border-radius: 4px; font-size: 12px; color: #aaa;">
+              <strong>Troubleshooting:</strong>
+              <ul style="margin: 6px 0 0 18px;">
+                <li>Make sure Ollama is running (<code>ollama serve</code>)</li>
+                <li>Verify the AI service is ready and reachable</li>
+                <li>Check endpoints at <a href="http://127.0.0.1:11434/api/tags" target="_blank" style="color: var(--blue);">http://127.0.0.1:11434/api/tags</a></li>
+              </ul>
+            </div>
+          </div>
+        `;
+        document.getElementById("btnRetryAI").addEventListener("click", triggerAIFeedback);
+        return;
+      }
+
+      if (state.aiFeedback) {
+        consoleBody.innerHTML = `
+          <div class="ai-card">
+            <div class="ai-header-bar">
+              <span class="ai-header-title">AI Feedback</span>
+              <button class="btn btn-run" id="btnReanalyzeAI" style="margin-left: auto; height: 26px; font-size: 11px;">↻ Re-analyze</button>
+            </div>
+            <div class="ai-markdown">${renderMarkdown(state.aiFeedback)}</div>
+          </div>
+        `;
+        document.getElementById("btnReanalyzeAI").addEventListener("click", triggerAIFeedback);
+        return;
+      }
+
+      consoleBody.innerHTML = `
+        <div class="ai-card" style="text-align: center; padding: 24px;">
+          <p style="color: var(--text-muted); margin-bottom: 12px;">No errors detected yet. Run or submit code to receive automated AI feedback when a testcase fails.</p>
+          <button class="btn btn-run" id="btnManualAI">Ask AI to Review Code</button>
+        </div>
+      `;
+      document.getElementById("btnManualAI")?.addEventListener("click", triggerAIFeedback);
+    }
+
+    function switchConsoleTab(tabKey) {
+      document.querySelectorAll("#consoleTabs .tab").forEach((t) => {
+        t.classList.toggle("active", t.dataset.console === tabKey);
+      });
+      state.activeConsoleTab = tabKey;
+      renderConsole();
+    }
+
+    document.querySelectorAll("#consoleTabs .tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        saveCurrentCaseInputs();
+        switchConsoleTab(tab.dataset.console);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Execution & AI Feedback Logic
+    // -------------------------------------------------------------------------
+    async function runCode(runAll = false) {
+      saveCurrentCaseInputs();
+      const runBtns = [document.getElementById("btnRun")].filter(Boolean);
+      const submitBtns = [document.getElementById("btnSubmit")].filter(Boolean);
+      const activeBtns = runAll ? submitBtns : runBtns;
+      const originalTexts = activeBtns.map((b) => b.innerHTML);
+      activeBtns.forEach((b) => {
+        b.innerHTML = `<span class="spinner"></span> ${runAll ? "Submitting..." : "Running..."}`;
+        b.disabled = true;
+      });
+
+      const curCase = state.cases[state.activeCaseIndex] || { stdin: "", expected_stdout: "" };
+
+      try {
+        const payload = {
+          problem_id: state.currentProblemId,
+          language: state.language,
+          code: codeEditor.value,
+          custom_input: curCase.stdin,
+          expected_output: curCase.expected_stdout,
+          run_all: runAll,
+        };
+
+        const res = await fetch(`${API_BASE}/api/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error(`Execution error: HTTP ${res.status}`);
+        const result = await res.json();
+        state.lastRunResult = result;
+
+        if (result.verdict !== "Accepted") {
+          // Trigger AI Feedback automatically for non-Accepted verdict
+          aiBadgeContainer.innerHTML = `<span class="ai-badge-dot">!</span>`;
+          switchConsoleTab("ai");
+          triggerAIFeedback();
+        } else {
+          switchConsoleTab("result");
+          aiBadgeContainer.innerHTML = "";
+        }
+      } catch (err) {
+        state.lastRunResult = {
+          verdict: "Runtime Error",
+          actual_output: "",
+          expected_output: curCase.expected_stdout,
+          stderr: String(err.message || err),
+          duration_ms: 0,
+        };
+        switchConsoleTab("ai");
+        aiBadgeContainer.innerHTML = `<span class="ai-badge-dot">!</span>`;
+        triggerAIFeedback();
+      } finally {
+        activeBtns.forEach((b, i) => {
+          b.innerHTML = originalTexts[i];
+          b.disabled = false;
+        });
+      }
+    }
+
+    async function triggerAIFeedback() {
+      state.aiLoading = true;
+      state.aiFeedback = "";
+      state.aiError = "";
+
+      // Switch to AI Feedback tab so user sees loading state
+      switchConsoleTab("ai");
+
+      const curCase = state.cases[state.activeCaseIndex] || {};
+      const failingInput = state.lastRunResult?.failing_input || curCase.stdin || "";
+      const actualOut = state.lastRunResult?.actual_output || "";
+      const expectedOut = state.lastRunResult?.expected_output || curCase.expected_stdout || "";
+      const stderr = state.lastRunResult?.stderr || "";
+      const verdict = state.lastRunResult?.verdict || "Wrong Answer";
+
+      try {
+        const payload = {
+          problem_description: state.problemDetail?.plain_text || state.problemDetail?.html || "",
+          code: codeEditor.value,
+          verdict: verdict,
+          failing_input: failingInput,
+          actual_output: actualOut,
+          expected_output: expectedOut,
+          stderr: stderr,
+          language: state.language,
+        };
+
+        const res = await fetch(`${API_BASE}/api/ai-feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data.available) {
+          state.aiFeedback = data.response || "No feedback generated.";
+        } else {
+          state.aiError = `${data.error || "Failed to get AI feedback."} ${data.detail || ""}`;
+        }
+      } catch (err) {
+        state.aiError = `Error reaching AI tutor proxy: ${err.message}`;
+      } finally {
+        state.aiLoading = false;
+        renderAITab();
+      }
+    }
+
+    document.getElementById("btnRun")?.addEventListener("click", () => runCode(false));
+    document.getElementById("btnSubmit")?.addEventListener("click", () => runCode(true));
+
+    // -------------------------------------------------------------------------
+    // Navigation & Random Problem Logic
+    // -------------------------------------------------------------------------
+    function getCurrentProblemIndex() {
+      return state.problems.findIndex((p) => p.problem_id === state.currentProblemId);
+    }
+
+    document.getElementById("btnPrev").addEventListener("click", () => {
+      const idx = getCurrentProblemIndex();
+      if (idx > 0) {
+        loadProblem(state.problems[idx - 1].problem_id);
+      } else if (state.problems.length > 0) {
+        loadProblem(state.problems[state.problems.length - 1].problem_id);
+      }
+    });
+
+    document.getElementById("btnNext").addEventListener("click", () => {
+      const idx = getCurrentProblemIndex();
+      if (idx >= 0 && idx < state.problems.length - 1) {
+        loadProblem(state.problems[idx + 1].problem_id);
+      } else if (state.problems.length > 0) {
+        loadProblem(state.problems[0].problem_id);
+      }
+    });
+
+    // Random button strictly picks a different problem (newId !== currentId)
+    document.getElementById("btnRandom").addEventListener("click", () => {
+      if (state.problems.length <= 1) return;
+      let newProblemId = state.currentProblemId;
+      while (newProblemId === state.currentProblemId) {
+        const randIdx = Math.floor(Math.random() * state.problems.length);
+        newProblemId = state.problems[randIdx].problem_id;
+      }
+      loadProblem(newProblemId);
+    });
+
+    // -------------------------------------------------------------------------
+    // Problem Drawer (Slide-out)
+    // -------------------------------------------------------------------------
+    function renderDrawerList(filter = "") {
+      const query = filter.trim().toLowerCase();
+      const filtered = state.problems.filter((p) => {
+        return p.problem_id.toLowerCase().includes(query) || p.title.toLowerCase().includes(query);
+      });
+
+      drawerList.innerHTML = filtered
+        .map((p) => `
+          <button class="drawer-item ${p.problem_id === state.currentProblemId ? "active" : ""}" data-prob-id="${p.problem_id}">
+            <span class="drawer-item-id">${p.problem_id}</span>
+            <span class="drawer-item-title">${escapeHtml(p.title)}</span>
+          </button>
+        `)
+        .join("");
+
+      drawerList.querySelectorAll("[data-prob-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          drawerBackdrop.classList.remove("open");
+          loadProblem(btn.dataset.probId);
+        });
+      });
+    }
+
+    document.getElementById("btnDrawer").addEventListener("click", () => {
+      drawerBackdrop.classList.add("open");
+      drawerSearch.value = "";
+      renderDrawerList();
+      drawerSearch.focus();
+    });
+
+    document.getElementById("btnCloseDrawer").addEventListener("click", () => {
+      drawerBackdrop.classList.remove("open");
+    });
+
+    drawerBackdrop.addEventListener("click", (e) => {
+      if (e.target === drawerBackdrop) {
+        drawerBackdrop.classList.remove("open");
+      }
+    });
+
+    drawerSearch.addEventListener("input", (e) => {
+      renderDrawerList(e.target.value);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && drawerBackdrop.classList.contains("open")) {
+        drawerBackdrop.classList.remove("open");
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // Resizers (Draggable Splitters)
+    // -------------------------------------------------------------------------
+    function initSplitter(resizerEl, direction) {
+      let isDragging = false;
+
+      resizerEl.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        isDragging = true;
+        resizerEl.classList.add("active");
+        document.body.style.cursor = direction === "v" ? "col-resize" : "row-resize";
+        document.body.style.userSelect = "none";
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        if (direction === "v") {
+          const workspaceRect = document.getElementById("workspace").getBoundingClientRect();
+          const offset = e.clientX - workspaceRect.left;
+          const pct = Math.min(Math.max((offset / workspaceRect.width) * 100, 20), 80);
+          leftPane.style.width = `${pct}%`;
+          rightPane.style.width = `${100 - pct}%`;
+        } else {
+          const rightRect = rightPane.getBoundingClientRect();
+          const offsetFromBottom = rightRect.bottom - e.clientY;
+          const h = Math.min(Math.max(offsetFromBottom, 70), rightRect.height - 100);
+          consolePane.style.height = `${h}px`;
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          resizerEl.classList.remove("active");
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        }
+      });
+    }
+
+    initSplitter(document.getElementById("vResizer"), "v");
+    initSplitter(document.getElementById("hResizer"), "h");
+
+    // -------------------------------------------------------------------------
+    // Window Controls (Collapse & Maximize on Every Header)
+    // -------------------------------------------------------------------------
+    document.querySelectorAll("[data-action]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const action = btn.dataset.action;
+        const targetId = btn.dataset.target;
+        const target = document.getElementById(targetId);
+
+        if (action === "collapse") {
+          if (target === leftPane) {
+            target.classList.toggle("collapsed-v");
+            btn.textContent = target.classList.contains("collapsed-v") ? "+" : "—";
+          } else {
+            target.classList.toggle("collapsed-h");
+            btn.textContent = target.classList.contains("collapsed-h") ? "+" : "—";
+          }
+        } else if (action === "maximize") {
+          const isMax = target.classList.contains("maximized");
+          // Reset all maximizes
+          document.querySelectorAll(".pane, .editor-pane, .console-pane").forEach((el) => {
+            el.classList.remove("maximized", "hidden-pane");
+          });
+          document.querySelectorAll('[data-action="maximize"]').forEach((b) => (b.textContent = "⛶"));
+
+          if (!isMax) {
+            target.classList.add("maximized");
+            btn.textContent = "❐";
+            // Hide other panes
+            if (target === leftPane) {
+              rightPane.classList.add("hidden-pane");
+              document.getElementById("vResizer").classList.add("hidden-pane");
+            } else if (target === editorPane) {
+              leftPane.classList.add("hidden-pane");
+              consolePane.classList.add("hidden-pane");
+              document.getElementById("vResizer").classList.add("hidden-pane");
+              document.getElementById("hResizer").classList.add("hidden-pane");
+            } else if (target === consolePane) {
+              leftPane.classList.add("hidden-pane");
+              editorPane.classList.add("hidden-pane");
+              document.getElementById("vResizer").classList.add("hidden-pane");
+              document.getElementById("hResizer").classList.add("hidden-pane");
+            }
+          } else {
+            document.getElementById("vResizer").classList.remove("hidden-pane");
+            document.getElementById("hResizer").classList.remove("hidden-pane");
+          }
+        }
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Elapsed Timer
+    // -------------------------------------------------------------------------
+    let elapsedSeconds = 0;
+    setInterval(() => {
+      elapsedSeconds++;
+      const m = String(Math.floor(elapsedSeconds / 60)).padStart(2, "0");
+      const s = String(elapsedSeconds % 60).padStart(2, "0");
+      document.getElementById("topTimer").textContent = `${m}:${s}`;
+    }, 1000);
+
+    // -------------------------------------------------------------------------
+    // Initialize App
+    // -------------------------------------------------------------------------
+    codeEditor.value = starterTemplates["C++"] || "";
+    updateEditor();
+    loadProblemList();
+  </script>
+</body>
+</html>
