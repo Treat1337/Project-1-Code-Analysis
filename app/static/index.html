@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project_CodeNet Analysis & Runner</title>
+  <!-- Marked.js for Markdown rendering (with inline fallback) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Top Navigation Bar -->
+    <header class="topbar">
+      <button class="btn" id="btnDrawer">☰ Problem List</button>
+      <button class="btn btn-icon" id="btnPrev" title="Previous Problem">‹</button>
+      <button class="btn btn-icon" id="btnNext" title="Next Problem">›</button>
+      <button class="btn" id="btnRandom" title="Pick Random Problem">🔀 Random</button>
+
+      <div class="top-problem-info">
+        <span class="prob-id-badge" id="topProblemId">p00001</span>
+        <span id="topProblemTitle">Loading problem...</span>
+      </div>
+
+      <button class="btn btn-run" id="btnRun">▶ Run</button>
+      <button class="btn btn-submit" id="btnSubmit">✓ Submit</button>
+      <span class="timer" id="topTimer">00:00</span>
+
+      <div class="spacer"></div>
+
+      <div class="auth-nav-wrap" id="authNavWrap">
+        <button class="btn btn-login-nav" id="btnOpenAuth">Login</button>
+        <button class="btn user-menu-btn" id="btnUserMenu" style="display: none;">
+          <span class="user-avatar-dot"></span>
+          <span id="navUsername">user</span>
+          <span>▾</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+          <button class="user-dropdown-item" id="btnMenuAccount">My Account</button>
+          <button class="user-dropdown-item danger" id="btnMenuLogout">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Workspace -->
+    <main class="workspace" id="workspace">
+      <!-- Left Pane: Problem & Solutions ONLY (Strictly NO Editorial / Submissions) -->
+      <section class="pane left-pane" id="leftPane">
+        <div class="pane-header">
+          <div class="tabs" id="leftTabs">
+            <button class="tab active" data-tab="description">Description</button>
+            <button class="tab" data-tab="solutions">Solutions</button>
+          </div>
+          <div class="window-controls">
+            <button class="control-btn" data-action="collapse" data-target="leftPane" title="Collapse">—</button>
+            <button class="control-btn" data-action="maximize" data-target="leftPane" title="Maximize">⛶</button>
+          </div>
+        </div>
+        <div class="pane-body problem-content" id="leftBody">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Vertical Resizer -->
+      <div class="vertical-resizer" id="vResizer"></div>
+
+      <!-- Right Pane: Code Editor + Console -->
+      <section class="pane right-pane" id="rightPane">
+        <!-- Top: Code Editor -->
+        <section class="editor-pane" id="editorPane">
+          <div class="pane-header">
+            <span style="font-weight: 600; color: #ffa116; display: flex; align-items: center; gap: 6px;">
+              ‹ / › Code
+            </span>
+            <div class="window-controls">
+              <button class="control-btn" data-action="collapse" data-target="editorPane" title="Collapse">—</button>
+              <button class="control-btn" data-action="maximize" data-target="editorPane" title="Maximize">⛶</button>
+            </div>
+          </div>
+          <div class="editor-toolbar">
+            <select class="select-dropdown" id="langSelect">
+              <option value="C++">C++</option>
+            </select>
+            <button class="btn" id="btnResetCode" style="height: 28px; padding: 0 8px; font-size: 12px;">↺ Reset</button>
+            <button class="btn" id="btnFormatCode" style="height: 28px; padding: 0 8px; font-size: 12px;">Format</button>
+            <div class="spacer"></div>
+          </div>
+          <div class="editor-container" id="editorContainer">
+            <div class="line-numbers" id="lineNumbers"><span>1</span></div>
+            <div class="editor-workspace" id="editorWorkspace">
+              <div class="active-line-indicator" id="activeLineIndicator"></div>
+              <pre class="code-highlight" id="codeHighlight" aria-hidden="true"><code id="codeHighlightContent"></code></pre>
+              <textarea class="code-textarea" id="codeEditor" spellcheck="false" wrap="off"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Horizontal Resizer -->
+        <div class="horizontal-resizer" id="hResizer"></div>
+
+        <!-- Bottom: Console Pane (Testcase, Test Result, AI Feedback) -->
+        <section class="console-pane" id="consolePane">
+          <div class="pane-header">
+            <div class="tabs" id="consoleTabs">
+              <button class="tab active" data-console="testcase">Testcase</button>
+              <button class="tab" data-console="result">Test Result</button>
+              <button class="tab" data-console="ai">
+                AI Feedback
+                <span id="aiBadgeContainer"></span>
+              </button>
+            </div>
+            <div class="window-controls">
+              <button class="control-btn" data-action="collapse" data-target="consolePane" title="Collapse">—</button>
+              <button class="control-btn" data-action="maximize" data-target="consolePane" title="Maximize">⛶</button>
+            </div>
+          </div>
+          <div class="console-body" id="consoleBody">
+            <!-- Populated dynamically -->
+          </div>
+        </section>
+      </section>
+
+      <!-- Slide-out Problem Drawer -->
+      <div class="drawer-backdrop" id="drawerBackdrop">
+        <aside class="drawer-panel" id="drawerPanel">
+          <div class="drawer-header">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <strong style="font-size: 14px;">Problem List</strong>
+              <button class="control-btn" id="btnCloseDrawer">✕</button>
+            </div>
+            <input type="text" class="drawer-search-input" id="drawerSearch" placeholder="Search problem ID or title...">
+          </div>
+          <div class="drawer-list" id="drawerList"></div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- My Account & Submission History View -->
+    <section class="page-view" id="accountView">
+      <div class="page-container">
+        <div class="page-topbar">
+          <div>
+            <h2 style="font-size: 20px; font-weight: 700;">My Account</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">Manage your profile, password, and submission history</p>
+          </div>
+          <button class="btn" id="btnBackToIdeFromAccount">← Back to Web IDE</button>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Account Information</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" id="btnOpenChangePassword">Change Password</button>
+              <button class="btn" id="btnAccountLogout" style="color: var(--red); border-color: rgba(255,77,79,0.4);">Logout</button>
+            </div>
+          </div>
+          <div class="account-info-grid">
+            <div class="stat-box">
+              <div class="stat-label">Username</div>
+              <div id="acctUsername" style="font-size: 16px; font-weight: 600;">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Email</div>
+              <div id="acctEmail" style="font-size: 15px; color: var(--text-secondary);">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Created At</div>
+              <div id="acctCreatedAt" style="font-size: 14px; color: var(--text-secondary);">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Submission Overview (Verified Compiler Results)</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Total Submissions</div>
+              <div class="stat-val" id="statTotal">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Accepted</div>
+              <div class="stat-val" id="statAccepted" style="color: var(--green);">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Incorrect</div>
+              <div class="stat-val" id="statIncorrect" style="color: var(--accent);">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Compile Errors</div>
+              <div class="stat-val" id="statCompileErrors" style="color: var(--red);">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Submission History</span>
+          </div>
+          <div class="history-controls">
+            <input type="text" class="form-input" id="histSearch" placeholder="Search problem ID..." style="min-width: 200px;">
+            <select class="select-dropdown" id="histStatusFilter" style="height: 36px;">
+              <option value="">All Statuses</option>
+              <option value="completed">completed</option>
+              <option value="compile_error">compile_error</option>
+              <option value="partial_error">partial_error</option>
+              <option value="failed">failed</option>
+              <option value="processing">processing</option>
+            </select>
+            <select class="select-dropdown" id="histSort" style="height: 36px;">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            <button class="btn" id="btnHistRefresh" style="height: 36px;">↻ Refresh</button>
+          </div>
+          <div id="histAlert" class="form-alert"></div>
+          <div style="overflow-x: auto;">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Problem</th>
+                  <th>Submitted At</th>
+                  <th>Status</th>
+                  <th>Compile Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="histTableBody">
+                <tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No submissions yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+            <span id="histPageInfo" style="font-size: 12.5px; color: var(--text-muted);">Page 1</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" id="btnHistPrev">‹ Prev</button>
+              <button class="btn" id="btnHistNext">Next ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Submission Detail View -->
+    <section class="page-view" id="submissionDetailView">
+      <div class="page-container">
+        <div class="page-topbar">
+          <div>
+            <h2 id="detailHeading" style="font-size: 20px; font-weight: 700;">Submission Detail</h2>
+            <p id="detailSubheading" style="font-size: 13px; color: var(--text-muted);">Loading...</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" id="btnBackToAccount">← My Account</button>
+            <button class="btn" id="btnBackToIdeFromDetail">Web IDE</button>
+          </div>
+        </div>
+
+        <div id="detailAlert" class="form-alert"></div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Verified Compiler &amp; Execution Result</span>
+            <span id="detailVerifiedBadge" class="status-pill">—</span>
+          </div>
+          <div id="detailCompilerBox" style="font-size: 13px; color: var(--text-secondary);"></div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>AI Model Predictions (Experimental — Separate from Verified Verdict)</span>
+            <span id="detailModelVersions" style="font-size: 12px; color: var(--text-muted);"></span>
+          </div>
+          <div class="models-grid" id="detailModelsGrid"></div>
+        </div>
+
+        <div class="card-panel" id="detailErrorSummaryCard" style="display: none;">
+          <div class="card-title"><span>Error Summary</span></div>
+          <pre id="detailErrorSummary" class="code-readonly" style="color: #ff9c9e; white-space: pre-wrap;"></pre>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title"><span>Submitted Source Code</span></div>
+          <div id="detailSourceCode" class="code-readonly"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Login / Register Modal -->
+    <div class="modal-backdrop" id="authModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-tabs">
+            <button class="modal-tab active" id="tabLoginBtn" data-auth-tab="login">Login</button>
+            <button class="modal-tab" id="tabRegisterBtn" data-auth-tab="register">Register</button>
+          </div>
+          <button class="control-btn" id="btnCloseAuthModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="authModalAlert" class="form-alert"></div>
+
+          <!-- Login Form -->
+          <form id="loginForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="loginIdentifier">Username or Email</label>
+              <input class="form-input" id="loginIdentifier" type="text" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPassword">Password</label>
+              <input class="form-input" id="loginPassword" type="password" autocomplete="current-password" required>
+            </div>
+            <button class="btn btn-submit" id="btnLoginSubmit" type="submit" style="justify-content: center; height: 38px;">Login</button>
+            <div style="font-size: 12.5px; color: var(--text-muted); text-align: center;">
+              Don't have an account? <a href="#" id="linkToRegister" style="color: var(--accent);">Register</a>
+            </div>
+          </form>
+
+          <!-- Register Form -->
+          <form id="registerForm" style="display: none; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="regUsername">Username (3-32 chars: letters, digits, _, -)</label>
+              <input class="form-input" id="regUsername" type="text" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regEmail">Email (optional)</label>
+              <input class="form-input" id="regEmail" type="email" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regPassword">Password (min 8 chars, letters &amp; digits)</label>
+              <input class="form-input" id="regPassword" type="password" autocomplete="new-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regConfirmPassword">Confirm Password</label>
+              <input class="form-input" id="regConfirmPassword" type="password" autocomplete="new-password" required>
+            </div>
+            <button class="btn btn-submit" id="btnRegisterSubmit" type="submit" style="justify-content: center; height: 38px;">Create Account</button>
+            <div style="font-size: 12.5px; color: var(--text-muted); text-align: center;">
+              Already have an account? <a href="#" id="linkToLogin" style="color: var(--accent);">Login</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal-backdrop" id="changePasswordModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <strong style="font-size: 14px;">Change Password</strong>
+          <button class="control-btn" id="btnCloseChangePwdModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="changePwdAlert" class="form-alert"></div>
+          <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="curPwd">Current Password</label>
+              <input class="form-input" id="curPwd" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newPwd">New Password (min 8 chars, letters &amp; digits)</label>
+              <input class="form-input" id="newPwd" type="password" autocomplete="new-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="confirmNewPwd">Confirm New Password</label>
+              <input class="form-input" id="confirmNewPwd" type="password" autocomplete="new-password" required>
+            </div>
+            <button class="btn btn-submit" id="btnChangePwdSubmit" type="submit" style="justify-content: center; height: 38px;">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/editor.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -16,8 +16,8 @@ class TrainedCodeBERTModel:
         self.device = device
         self.labels: list[str] = metadata["labels"]
         self.max_length = int(metadata["max_length"])
-        self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_dir, local_files_only=True)
         self.model.to(device)
         self.model.eval()
 

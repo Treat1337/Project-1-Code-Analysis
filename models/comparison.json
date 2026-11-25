@@ -1,0 +1,306 @@
+{
+  "dataset": "C:\\Users\\ADMIN\\OneDrive\\M\u00e1y t\u00ednh\\tailieu\\2026.1\\Project 1\\project\\Code_Analysis\\Dataset\\Project_CodeNet",
+  "results": [
+    {
+      "model": "tfidf_logistic_regression",
+      "dataset": "C:\\Users\\ADMIN\\OneDrive\\M\u00e1y t\u00ednh\\tailieu\\2026.1\\Project 1\\project\\Code_Analysis\\Dataset\\Project_CodeNet",
+      "sample_count": 3829,
+      "train_count": 3091,
+      "test_count": 738,
+      "split": "problem-disjoint",
+      "labels": [
+        "accepted",
+        "compile_error",
+        "memory_limit_exceeded",
+        "output_limit_exceeded",
+        "presentation_error",
+        "runtime_error",
+        "time_limit_exceeded",
+        "wrong_answer"
+      ],
+      "accuracy": 0.3225,
+      "macro_f1": 0.3357,
+      "confusion_matrix": [
+        [
+          28,
+          10,
+          10,
+          5,
+          2,
+          13,
+          17,
+          7
+        ],
+        [
+          18,
+          27,
+          5,
+          4,
+          11,
+          12,
+          13,
+          7
+        ],
+        [
+          3,
+          0,
+          54,
+          0,
+          0,
+          13,
+          14,
+          2
+        ],
+        [
+          5,
+          14,
+          4,
+          26,
+          3,
+          3,
+          4,
+          3
+        ],
+        [
+          1,
+          5,
+          12,
+          3,
+          32,
+          2,
+          1,
+          2
+        ],
+        [
+          17,
+          11,
+          26,
+          5,
+          11,
+          25,
+          11,
+          14
+        ],
+        [
+          14,
+          11,
+          17,
+          2,
+          8,
+          28,
+          28,
+          8
+        ],
+        [
+          22,
+          17,
+          5,
+          7,
+          5,
+          12,
+          21,
+          18
+        ]
+      ],
+      "classification_report": {
+        "accepted": {
+          "precision": 0.25925925925925924,
+          "recall": 0.30434782608695654,
+          "f1-score": 0.28,
+          "support": 92.0
+        },
+        "compile_error": {
+          "precision": 0.28421052631578947,
+          "recall": 0.27835051546391754,
+          "f1-score": 0.28125,
+          "support": 97.0
+        },
+        "memory_limit_exceeded": {
+          "precision": 0.40601503759398494,
+          "recall": 0.627906976744186,
+          "f1-score": 0.4931506849315068,
+          "support": 86.0
+        },
+        "output_limit_exceeded": {
+          "precision": 0.5,
+          "recall": 0.41935483870967744,
+          "f1-score": 0.45614035087719296,
+          "support": 62.0
+        },
+        "presentation_error": {
+          "precision": 0.4444444444444444,
+          "recall": 0.5517241379310345,
+          "f1-score": 0.49230769230769234,
+          "support": 58.0
+        },
+        "runtime_error": {
+          "precision": 0.23148148148148148,
+          "recall": 0.20833333333333334,
+          "f1-score": 0.21929824561403508,
+          "support": 120.0
+        },
+        "time_limit_exceeded": {
+          "precision": 0.25688073394495414,
+          "recall": 0.2413793103448276,
+          "f1-score": 0.24888888888888888,
+          "support": 116.0
+        },
+        "wrong_answer": {
+          "precision": 0.29508196721311475,
+          "recall": 0.16822429906542055,
+          "f1-score": 0.21428571428571427,
+          "support": 107.0
+        },
+        "accuracy": 0.3224932249322493,
+        "macro avg": {
+          "precision": 0.3346716812816286,
+          "recall": 0.3499526547099192,
+          "f1-score": 0.3356651971131288,
+          "support": 738.0
+        },
+        "weighted avg": {
+          "precision": 0.31472229989504014,
+          "recall": 0.3224932249322493,
+          "f1-score": 0.31219814204025537,
+          "support": 738.0
+        }
+      }
+    },
+    {
+      "model": "codebert",
+      "accuracy": 0.2493,
+      "macro_f1": 0.2627,
+      "classification_report": {
+        "accepted": {
+          "precision": 0.1702127659574468,
+          "recall": 0.2608695652173913,
+          "f1-score": 0.20600858369098712,
+          "support": 92.0
+        },
+        "compile_error": {
+          "precision": 0.3508771929824561,
+          "recall": 0.20618556701030927,
+          "f1-score": 0.2597402597402597,
+          "support": 97.0
+        },
+        "memory_limit_exceeded": {
+          "precision": 0.39344262295081966,
+          "recall": 0.27906976744186046,
+          "f1-score": 0.32653061224489793,
+          "support": 86.0
+        },
+        "output_limit_exceeded": {
+          "precision": 0.22448979591836735,
+          "recall": 0.3548387096774194,
+          "f1-score": 0.275,
+          "support": 62.0
+        },
+        "presentation_error": {
+          "precision": 0.42528735632183906,
+          "recall": 0.6379310344827587,
+          "f1-score": 0.5103448275862069,
+          "support": 58.0
+        },
+        "runtime_error": {
+          "precision": 0.17699115044247787,
+          "recall": 0.16666666666666666,
+          "f1-score": 0.17167381974248927,
+          "support": 120.0
+        },
+        "time_limit_exceeded": {
+          "precision": 0.18439716312056736,
+          "recall": 0.22413793103448276,
+          "f1-score": 0.20233463035019456,
+          "support": 116.0
+        },
+        "wrong_answer": {
+          "precision": 0.275,
+          "recall": 0.102803738317757,
+          "f1-score": 0.14965986394557823,
+          "support": 107.0
+        },
+        "accuracy": 0.24932249322493225,
+        "macro avg": {
+          "precision": 0.27508725596174677,
+          "recall": 0.27906287248108064,
+          "f1-score": 0.2626615746625767,
+          "support": 738.0
+        },
+        "weighted avg": {
+          "precision": 0.26310267039274043,
+          "recall": 0.24932249322493225,
+          "f1-score": 0.2424993339828393,
+          "support": 738.0
+        }
+      }
+    },
+    {
+      "model": "astnn",
+      "accuracy": 0.3022,
+      "macro_f1": 0.3119,
+      "classification_report": {
+        "accepted": {
+          "precision": 0.22962962962962963,
+          "recall": 0.33695652173913043,
+          "f1-score": 0.27312775330396477,
+          "support": 92.0
+        },
+        "compile_error": {
+          "precision": 0.42857142857142855,
+          "recall": 0.3402061855670103,
+          "f1-score": 0.3793103448275862,
+          "support": 97.0
+        },
+        "memory_limit_exceeded": {
+          "precision": 0.4642857142857143,
+          "recall": 0.45348837209302323,
+          "f1-score": 0.4588235294117647,
+          "support": 86.0
+        },
+        "output_limit_exceeded": {
+          "precision": 0.36585365853658536,
+          "recall": 0.24193548387096775,
+          "f1-score": 0.2912621359223301,
+          "support": 62.0
+        },
+        "presentation_error": {
+          "precision": 0.3258426966292135,
+          "recall": 0.5,
+          "f1-score": 0.3945578231292517,
+          "support": 58.0
+        },
+        "runtime_error": {
+          "precision": 0.22764227642276422,
+          "recall": 0.23333333333333334,
+          "f1-score": 0.23045267489711935,
+          "support": 120.0
+        },
+        "time_limit_exceeded": {
+          "precision": 0.22807017543859648,
+          "recall": 0.22413793103448276,
+          "f1-score": 0.22608695652173913,
+          "support": 116.0
+        },
+        "wrong_answer": {
+          "precision": 0.29333333333333333,
+          "recall": 0.205607476635514,
+          "f1-score": 0.24175824175824176,
+          "support": 107.0
+        },
+        "accuracy": 0.3021680216802168,
+        "macro avg": {
+          "precision": 0.3204036141059082,
+          "recall": 0.3169581630341828,
+          "f1-score": 0.31192243247149976,
+          "support": 738.0
+        },
+        "weighted avg": {
+          "precision": 0.31079621862867773,
+          "recall": 0.3021680216802168,
+          "f1-score": 0.30090897867566585,
+          "support": 738.0
+        }
+      }
+    }
+  ]
+}

@@ -941,6 +941,310 @@
     .hidden-pane {
       display: none !important;
     }
+
+    /* Auth, Account & Submission Views */
+    .auth-nav-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-login-nav {
+      background: rgba(255, 161, 22, 0.15);
+      border: 1px solid rgba(255, 161, 22, 0.45);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .btn-login-nav:hover {
+      background: rgba(255, 161, 22, 0.25);
+    }
+    .user-menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .user-avatar-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      display: inline-block;
+    }
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 170px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+      padding: 6px;
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .user-dropdown.open {
+      display: flex;
+    }
+    .user-dropdown-item {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .user-dropdown-item:hover {
+      background: var(--bg-panel-alt);
+    }
+    .user-dropdown-item.danger {
+      color: var(--red);
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 16px;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel-alt);
+    }
+    .modal-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .modal-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .modal-tab.active {
+      color: var(--accent);
+      background: rgba(255, 161, 22, 0.12);
+    }
+    .modal-body {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .form-input {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-app);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+    }
+    .form-alert {
+      font-size: 12.5px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      display: none;
+    }
+    .form-alert.error {
+      display: block;
+      background: rgba(255, 77, 79, 0.12);
+      border: 1px solid rgba(255, 77, 79, 0.35);
+      color: #ff8082;
+    }
+    .form-alert.info {
+      display: block;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+    .form-alert.success {
+      display: block;
+      background: rgba(44, 187, 93, 0.12);
+      border: 1px solid rgba(44, 187, 93, 0.35);
+      color: #6ee7b7;
+    }
+
+    /* Full Page Views (My Account & Submission Detail) */
+    .page-view {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      background: var(--bg-app);
+      display: none;
+    }
+    .page-view.active {
+      display: block;
+    }
+    .page-container {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .page-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .card-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .stat-box {
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .stat-val {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .account-info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .history-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .history-table th,
+    .history-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .status-pill.ok {
+      background: rgba(44, 187, 93, 0.16);
+      color: var(--green);
+    }
+    .status-pill.warn {
+      background: rgba(255, 161, 22, 0.16);
+      color: var(--accent);
+    }
+    .status-pill.err {
+      background: rgba(255, 77, 79, 0.16);
+      color: var(--red);
+    }
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .code-readonly {
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre;
+    }
+    @media (max-width: 900px) {
+      .stats-grid,
+      .account-info-grid,
+      .models-grid {
+        grid-template-columns: 1fr;
+      }
+      .top-problem-info {
+        max-width: 180px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -957,11 +1261,24 @@
         <span id="topProblemTitle">Loading problem...</span>
       </div>
 
-      <div class="spacer"></div>
-
       <button class="btn btn-run" id="btnRun">▶ Run</button>
       <button class="btn btn-submit" id="btnSubmit">✓ Submit</button>
       <span class="timer" id="topTimer">00:00</span>
+
+      <div class="spacer"></div>
+
+      <div class="auth-nav-wrap" id="authNavWrap">
+        <button class="btn btn-login-nav" id="btnOpenAuth">Login</button>
+        <button class="btn user-menu-btn" id="btnUserMenu" style="display: none;">
+          <span class="user-avatar-dot"></span>
+          <span id="navUsername">user</span>
+          <span>▾</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+          <button class="user-dropdown-item" id="btnMenuAccount">My Account</button>
+          <button class="user-dropdown-item danger" id="btnMenuLogout">Logout</button>
+        </div>
+      </div>
     </header>
 
     <!-- Workspace -->
@@ -1056,6 +1373,242 @@
         </aside>
       </div>
     </main>
+
+    <!-- My Account & Submission History View -->
+    <section class="page-view" id="accountView">
+      <div class="page-container">
+        <div class="page-topbar">
+          <div>
+            <h2 style="font-size: 20px; font-weight: 700;">My Account</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">Manage your profile, password, and submission history</p>
+          </div>
+          <button class="btn" id="btnBackToIdeFromAccount">← Back to Web IDE</button>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Account Information</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" id="btnOpenChangePassword">Change Password</button>
+              <button class="btn" id="btnAccountLogout" style="color: var(--red); border-color: rgba(255,77,79,0.4);">Logout</button>
+            </div>
+          </div>
+          <div class="account-info-grid">
+            <div class="stat-box">
+              <div class="stat-label">Username</div>
+              <div id="acctUsername" style="font-size: 16px; font-weight: 600;">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Email</div>
+              <div id="acctEmail" style="font-size: 15px; color: var(--text-secondary);">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Created At</div>
+              <div id="acctCreatedAt" style="font-size: 14px; color: var(--text-secondary);">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Submission Overview (Verified Compiler Results)</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Total Submissions</div>
+              <div class="stat-val" id="statTotal">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Accepted</div>
+              <div class="stat-val" id="statAccepted" style="color: var(--green);">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Incorrect</div>
+              <div class="stat-val" id="statIncorrect" style="color: var(--accent);">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Compile Errors</div>
+              <div class="stat-val" id="statCompileErrors" style="color: var(--red);">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Submission History</span>
+          </div>
+          <div class="history-controls">
+            <input type="text" class="form-input" id="histSearch" placeholder="Search problem ID..." style="min-width: 200px;">
+            <select class="select-dropdown" id="histStatusFilter" style="height: 36px;">
+              <option value="">All Statuses</option>
+              <option value="completed">completed</option>
+              <option value="compile_error">compile_error</option>
+              <option value="partial_error">partial_error</option>
+              <option value="failed">failed</option>
+              <option value="processing">processing</option>
+            </select>
+            <select class="select-dropdown" id="histSort" style="height: 36px;">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            <button class="btn" id="btnHistRefresh" style="height: 36px;">↻ Refresh</button>
+          </div>
+          <div id="histAlert" class="form-alert"></div>
+          <div style="overflow-x: auto;">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Problem</th>
+                  <th>Submitted At</th>
+                  <th>Status</th>
+                  <th>Compile Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="histTableBody">
+                <tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No submissions yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+            <span id="histPageInfo" style="font-size: 12.5px; color: var(--text-muted);">Page 1</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" id="btnHistPrev">‹ Prev</button>
+              <button class="btn" id="btnHistNext">Next ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Submission Detail View -->
+    <section class="page-view" id="submissionDetailView">
+      <div class="page-container">
+        <div class="page-topbar">
+          <div>
+            <h2 id="detailHeading" style="font-size: 20px; font-weight: 700;">Submission Detail</h2>
+            <p id="detailSubheading" style="font-size: 13px; color: var(--text-muted);">Loading...</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" id="btnBackToAccount">← My Account</button>
+            <button class="btn" id="btnBackToIdeFromDetail">Web IDE</button>
+          </div>
+        </div>
+
+        <div id="detailAlert" class="form-alert"></div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Verified Compiler &amp; Execution Result</span>
+            <span id="detailVerifiedBadge" class="status-pill">—</span>
+          </div>
+          <div id="detailCompilerBox" style="font-size: 13px; color: var(--text-secondary);"></div>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title">
+            <span>AI Model Predictions (Experimental — Separate from Verified Verdict)</span>
+            <span id="detailModelVersions" style="font-size: 12px; color: var(--text-muted);"></span>
+          </div>
+          <div class="models-grid" id="detailModelsGrid"></div>
+        </div>
+
+        <div class="card-panel" id="detailErrorSummaryCard" style="display: none;">
+          <div class="card-title"><span>Error Summary</span></div>
+          <pre id="detailErrorSummary" class="code-readonly" style="color: #ff9c9e; white-space: pre-wrap;"></pre>
+        </div>
+
+        <div class="card-panel">
+          <div class="card-title"><span>Submitted Source Code</span></div>
+          <div id="detailSourceCode" class="code-readonly"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Login / Register Modal -->
+    <div class="modal-backdrop" id="authModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-tabs">
+            <button class="modal-tab active" id="tabLoginBtn" data-auth-tab="login">Login</button>
+            <button class="modal-tab" id="tabRegisterBtn" data-auth-tab="register">Register</button>
+          </div>
+          <button class="control-btn" id="btnCloseAuthModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="authModalAlert" class="form-alert"></div>
+
+          <!-- Login Form -->
+          <form id="loginForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="loginIdentifier">Username or Email</label>
+              <input class="form-input" id="loginIdentifier" type="text" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPassword">Password</label>
+              <input class="form-input" id="loginPassword" type="password" autocomplete="current-password" required>
+            </div>
+            <button class="btn btn-submit" id="btnLoginSubmit" type="submit" style="justify-content: center; height: 38px;">Login</button>
+            <div style="font-size: 12.5px; color: var(--text-muted); text-align: center;">
+              Don't have an account? <a href="#" id="linkToRegister" style="color: var(--accent);">Register</a>
+            </div>
+          </form>
+
+          <!-- Register Form -->
+          <form id="registerForm" style="display: none; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="regUsername">Username (3-32 chars: letters, digits, _, -)</label>
+              <input class="form-input" id="regUsername" type="text" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regEmail">Email (optional)</label>
+              <input class="form-input" id="regEmail" type="email" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regPassword">Password (min 8 chars, letters &amp; digits)</label>
+              <input class="form-input" id="regPassword" type="password" autocomplete="new-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regConfirmPassword">Confirm Password</label>
+              <input class="form-input" id="regConfirmPassword" type="password" autocomplete="new-password" required>
+            </div>
+            <button class="btn btn-submit" id="btnRegisterSubmit" type="submit" style="justify-content: center; height: 38px;">Create Account</button>
+            <div style="font-size: 12.5px; color: var(--text-muted); text-align: center;">
+              Already have an account? <a href="#" id="linkToLogin" style="color: var(--accent);">Login</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal-backdrop" id="changePasswordModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <strong style="font-size: 14px;">Change Password</strong>
+          <button class="control-btn" id="btnCloseChangePwdModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="changePwdAlert" class="form-alert"></div>
+          <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="curPwd">Current Password</label>
+              <input class="form-input" id="curPwd" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newPwd">New Password (min 8 chars, letters &amp; digits)</label>
+              <input class="form-input" id="newPwd" type="password" autocomplete="new-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="confirmNewPwd">Confirm New Password</label>
+              <input class="form-input" id="confirmNewPwd" type="password" autocomplete="new-password" required>
+            </div>
+            <button class="btn btn-submit" id="btnChangePwdSubmit" type="submit" style="justify-content: center; height: 38px;">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1065,6 +1618,7 @@
     const API_BASE = (window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null")
       ? "http://127.0.0.1:8000"
       : "";
+    const AUTH_API_BASE = window.AUTH_API_BASE || "http://127.0.0.1:8080";
     const state = {
       problems: [],
       currentProblemId: "p00001",
@@ -1079,6 +1633,13 @@
       aiLoading: false,
       aiFeedback: "",
       aiError: "",
+      user: null,
+      csrfToken: "",
+      historyPage: 1,
+      historyLimit: 10,
+      historyTotal: 0,
+      historyItems: [],
+      lastSubmissionAnalysis: null,
     };
 
     // Clean default C++ starter template (C++ only)
@@ -1739,6 +2300,11 @@ int main() {
     // Execution & AI Feedback Logic
     // -------------------------------------------------------------------------
     async function runCode(runAll = false) {
+      if (!state.user) {
+        openAuthModal("login", "Please log in to run or submit code. Your code in the editor is preserved.");
+        return;
+      }
+
       saveCurrentCaseInputs();
       const runBtns = [document.getElementById("btnRun")].filter(Boolean);
       const submitBtns = [document.getElementById("btnSubmit")].filter(Boolean);
@@ -1752,27 +2318,71 @@ int main() {
       const curCase = state.cases[state.activeCaseIndex] || { stdin: "", expected_stdout: "" };
 
       try {
-        const payload = {
-          problem_id: state.currentProblemId,
-          language: state.language,
-          code: codeEditor.value,
-          custom_input: curCase.stdin,
-          expected_output: curCase.expected_stdout,
-          run_all: runAll,
-        };
+        if (!runAll) {
+          const payload = {
+            problem_id: state.currentProblemId,
+            language: "cpp",
+            code: codeEditor.value,
+            custom_input: curCase.stdin,
+            expected_output: curCase.expected_stdout,
+          };
+          const res = await authFetch("/api/code/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.status === 401) return;
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `Execution error: HTTP ${res.status}`);
 
-        const res = await fetch(`${API_BASE}/api/run`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+          state.lastSubmissionAnalysis = null;
+          state.lastRunResult = {
+            verdict: data.verdict || data.execution_status || "Unknown",
+            actual_output: data.stdout || "",
+            expected_output: curCase.expected_stdout || "",
+            stderr: data.stderr || (Array.isArray(data.compile_diagnostics) ? data.compile_diagnostics.join("\n") : ""),
+            duration_ms: data.execution_time_ms || 0,
+            tests: data.tests || [],
+            passed_count: data.passed_count || 0,
+            total_count: data.total_count || 0,
+          };
+        } else {
+          const requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+          const payload = {
+            problem_id: state.currentProblemId,
+            language: "cpp",
+            code: codeEditor.value,
+            custom_input: curCase.stdin,
+            problem_description: state.problemDetail?.plain_text || "",
+            sample_input: curCase.stdin || "",
+            sample_output: curCase.expected_stdout || "",
+            request_id: requestId,
+          };
+          const res = await authFetch("/api/code/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.status === 401) return;
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `Submit error: HTTP ${res.status}`);
 
-        if (!res.ok) throw new Error(`Execution error: HTTP ${res.status}`);
-        const result = await res.json();
-        state.lastRunResult = result;
+          const comp = data.compiler || {};
+          const analysis = data.analysis || {};
+          state.lastSubmissionAnalysis = { submission: data.submission, analysis };
+          state.lastRunResult = {
+            verdict: comp.verdict || analysis.compiler?.verdict || data.submission?.status || "Unknown",
+            actual_output: comp.stdout || "",
+            expected_output: curCase.expected_stdout || "",
+            stderr: comp.stderr || (Array.isArray(analysis.compiler?.diagnostics) ? analysis.compiler.diagnostics.join("\n") : ""),
+            duration_ms: comp.execution_time_ms || analysis.compiler?.execution_time_ms || 0,
+            tests: comp.tests || [],
+            passed_count: comp.passed_count || analysis.compiler?.passed_count || 0,
+            total_count: comp.total_count || analysis.compiler?.total_count || 0,
+          };
+        }
 
-        if (result.verdict !== "Accepted") {
-          // Trigger AI Feedback automatically for non-Accepted verdict
+        if (state.lastRunResult.verdict !== "Accepted") {
           aiBadgeContainer.innerHTML = `<span class="ai-badge-dot">!</span>`;
           switchConsoleTab("ai");
           triggerAIFeedback();
@@ -2046,11 +2656,512 @@ int main() {
     }, 1000);
 
     // -------------------------------------------------------------------------
+    // Authentication, Account, Submission History & Detail Logic
+    // -------------------------------------------------------------------------
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "=([^;]*)"));
+      return match ? decodeURIComponent(match[1]) : "";
+    }
+
+    async function ensureCSRFToken() {
+      if (state.csrfToken) return state.csrfToken;
+      const fromCookie = getCookie("ca_csrf");
+      if (fromCookie) {
+        state.csrfToken = fromCookie;
+        return fromCookie;
+      }
+      try {
+        const res = await fetch(`${AUTH_API_BASE}/api/auth/csrf`, { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          state.csrfToken = data.csrf_token || "";
+        }
+      } catch (_) {}
+      return state.csrfToken;
+    }
+
+    async function authFetch(path, options = {}) {
+      const method = (options.method || "GET").toUpperCase();
+      const headers = new Headers(options.headers || {});
+      if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+        const csrf = await ensureCSRFToken();
+        if (csrf) headers.set("X-CSRF-Token", csrf);
+      }
+
+      const res = await fetch(`${AUTH_API_BASE}${path}`, {
+        ...options,
+        headers,
+        credentials: "include",
+      });
+
+      if (res.status === 401 && state.user) {
+        state.user = null;
+        renderAuthToolbar();
+        if (window.location.hash.startsWith("#account") || window.location.hash.startsWith("#submission/")) {
+          window.location.hash = "#ide";
+        }
+        openAuthModal("login", "Your session expired. Please log in again.");
+      }
+      return res;
+    }
+
+    function renderAuthToolbar() {
+      const btnOpenAuth = document.getElementById("btnOpenAuth");
+      const btnUserMenu = document.getElementById("btnUserMenu");
+      const navUsername = document.getElementById("navUsername");
+      const dropdown = document.getElementById("userDropdown");
+
+      if (state.user) {
+        btnOpenAuth.style.display = "none";
+        btnUserMenu.style.display = "inline-flex";
+        navUsername.textContent = state.user.username;
+      } else {
+        btnOpenAuth.style.display = "inline-flex";
+        btnUserMenu.style.display = "none";
+        dropdown.classList.remove("open");
+      }
+    }
+
+    function showAlert(el, type, msg) {
+      if (!el) return;
+      if (!msg) {
+        el.className = "form-alert";
+        el.textContent = "";
+        return;
+      }
+      el.className = `form-alert ${type}`;
+      el.textContent = msg;
+    }
+
+    function openAuthModal(tab = "login", infoMsg = "") {
+      const modal = document.getElementById("authModal");
+      switchAuthTab(tab);
+      showAlert(document.getElementById("authModalAlert"), infoMsg ? "info" : "", infoMsg);
+      modal.classList.add("open");
+    }
+
+    function closeAuthModal() {
+      document.getElementById("authModal").classList.remove("open");
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("regPassword").value = "";
+      document.getElementById("regConfirmPassword").value = "";
+    }
+
+    function switchAuthTab(tab) {
+      const isLogin = tab === "login";
+      document.getElementById("tabLoginBtn").classList.toggle("active", isLogin);
+      document.getElementById("tabRegisterBtn").classList.toggle("active", !isLogin);
+      document.getElementById("loginForm").style.display = isLogin ? "flex" : "none";
+      document.getElementById("registerForm").style.display = isLogin ? "none" : "flex";
+      showAlert(document.getElementById("authModalAlert"), "", "");
+    }
+
+    async function restoreSession() {
+      try {
+        const res = await fetch(`${AUTH_API_BASE}/api/auth/me`, { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          state.user = data.user || null;
+          await ensureCSRFToken();
+        } else {
+          state.user = null;
+        }
+      } catch (_) {
+        state.user = null;
+      }
+      renderAuthToolbar();
+      handleRoute();
+    }
+
+    async function handleLogout() {
+      try {
+        await authFetch("/api/auth/logout", { method: "POST" });
+      } catch (_) {}
+      state.user = null;
+      state.csrfToken = "";
+      renderAuthToolbar();
+      window.location.hash = "#ide";
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+    }
+
+    function statusPillClass(status) {
+      const s = String(status || "").toLowerCase();
+      if (s === "completed" || s === "accepted" || s === "success") return "ok";
+      if (s === "compile_error" || s === "failed" || s === "error") return "err";
+      return "warn";
+    }
+
+    async function loadAccountPage() {
+      if (!state.user) {
+        window.location.hash = "#ide";
+        openAuthModal("login", "Please log in to view My Account.");
+        return;
+      }
+
+      document.getElementById("acctUsername").textContent = state.user.username || "—";
+      document.getElementById("acctEmail").textContent = state.user.email || "Not set";
+      document.getElementById("acctCreatedAt").textContent = formatDateTime(state.user.created_at);
+
+      try {
+        const statsRes = await authFetch("/api/submissions/stats");
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          document.getElementById("statTotal").textContent = stats.total ?? 0;
+          document.getElementById("statAccepted").textContent = stats.accepted ?? 0;
+          document.getElementById("statIncorrect").textContent = stats.incorrect ?? 0;
+          document.getElementById("statCompileErrors").textContent = stats.compile_errors ?? 0;
+        }
+      } catch (_) {}
+
+      await loadSubmissionHistory();
+    }
+
+    async function loadSubmissionHistory() {
+      const alertEl = document.getElementById("histAlert");
+      showAlert(alertEl, "", "");
+
+      const status = document.getElementById("histStatusFilter").value;
+      const search = document.getElementById("histSearch").value.trim().toLowerCase();
+      const sort = document.getElementById("histSort").value;
+
+      const params = new URLSearchParams({
+        page: String(state.historyPage),
+        limit: String(state.historyLimit),
+      });
+      if (status) params.set("status", status);
+
+      try {
+        const res = await authFetch(`/api/submissions?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        let items = Array.isArray(data.submissions) ? data.submissions : [];
+
+        if (search) {
+          items = items.filter((it) =>
+            String(it.problem_id || "").toLowerCase().includes(search) ||
+            String(it.id || "").includes(search)
+          );
+        }
+        if (sort === "oldest") {
+          items = items.slice().reverse();
+        }
+
+        state.historyTotal = data.total ?? items.length;
+        state.historyItems = items;
+        renderHistoryTable(items);
+      } catch (err) {
+        showAlert(alertEl, "error", `Failed to load submission history: ${err.message}`);
+      }
+    }
+
+    function renderHistoryTable(items) {
+      const tbody = document.getElementById("histTableBody");
+      const totalPages = Math.max(1, Math.ceil((state.historyTotal || 0) / state.historyLimit));
+      document.getElementById("histPageInfo").textContent = `Page ${state.historyPage} of ${totalPages} (${state.historyTotal} total)`;
+      document.getElementById("btnHistPrev").disabled = state.historyPage <= 1;
+      document.getElementById("btnHistNext").disabled = state.historyPage >= totalPages;
+
+      if (!items.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No submissions found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map((s) => `
+        <tr>
+          <td>#${s.id}</td>
+          <td><span class="prob-id-badge">${escapeHtml(s.problem_id || "")}</span></td>
+          <td>${escapeHtml(formatDateTime(s.created_at))}</td>
+          <td><span class="status-pill ${statusPillClass(s.status)}">${escapeHtml(s.status)}</span></td>
+          <td>${escapeHtml(s.compile_status || "—")}</td>
+          <td><button class="btn" onclick="window.location.hash='#submission/${s.id}'" style="height: 28px; font-size: 12px;">View Detail</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderModelCard(title, modelObj) {
+      if (!modelObj) {
+        return `<div class="stat-box"><div class="stat-label">${escapeHtml(title)}</div><div style="color: var(--text-muted); font-size: 13px;">Unavailable</div></div>`;
+      }
+      if (!modelObj.available) {
+        return `<div class="stat-box"><div class="stat-label">${escapeHtml(title)}</div><div style="color: var(--text-muted); font-size: 12.5px;">${escapeHtml(modelObj.reason || "Not available")}</div></div>`;
+      }
+      const pct = typeof modelObj.confidence === "number" ? `${(modelObj.confidence * 100).toFixed(1)}%` : "—";
+      const cls = String(modelObj.label || "").toLowerCase() === "correct" ? "ok" : "warn";
+      return `
+        <div class="stat-box">
+          <div class="stat-label">${escapeHtml(title)}</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <span class="status-pill ${cls}">${escapeHtml(modelObj.label || "Unknown")}</span>
+            <span style="font-size: 14px; font-weight: 600;">${pct}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadSubmissionDetail(id) {
+      if (!state.user) {
+        window.location.hash = "#ide";
+        openAuthModal("login", "Please log in to view submission details.");
+        return;
+      }
+      const alertEl = document.getElementById("detailAlert");
+      showAlert(alertEl, "", "");
+      document.getElementById("detailHeading").textContent = `Submission #${id}`;
+      document.getElementById("detailSubheading").textContent = "Loading...";
+
+      try {
+        const res = await authFetch(`/api/submissions/${id}`);
+        if (res.status === 404) {
+          showAlert(alertEl, "error", "Submission not found or you do not have permission to view it.");
+          return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const sub = data.submission;
+        let analysis = {};
+        if (sub.analysis_result) {
+          try { analysis = JSON.parse(sub.analysis_result); } catch (_) {}
+        }
+
+        document.getElementById("detailHeading").textContent = `Submission #${sub.id} — ${sub.problem_id}`;
+        document.getElementById("detailSubheading").textContent = `Submitted at: ${formatDateTime(sub.created_at)} | Language: ${sub.language} | Status: ${sub.status}`;
+
+        const comp = analysis.compiler || {};
+        const verdict = comp.verdict || sub.compile_status || sub.status;
+        const badge = document.getElementById("detailVerifiedBadge");
+        badge.textContent = verdict;
+        badge.className = `status-pill ${statusPillClass(verdict)}`;
+
+        const diagList = Array.isArray(comp.diagnostics) && comp.diagnostics.length
+          ? `<pre class="code-readonly" style="margin-top:8px; color:#ff9c9e;">${escapeHtml(comp.diagnostics.join("\n"))}</pre>`
+          : `<div style="margin-top:6px; color: var(--text-muted);">No compiler diagnostics.</div>`;
+        document.getElementById("detailCompilerBox").innerHTML = `
+          <div>Compile Status: <strong>${escapeHtml(comp.status || sub.compile_status || "—")}</strong> | Execution Time: <strong>${comp.execution_time_ms ?? 0} ms</strong></div>
+          ${diagList}
+        `;
+
+        const mv = analysis.model_version || {};
+        const mvText = [
+          mv.astnn ? `ASTNN: ${mv.astnn}` : "",
+          mv.codebert ? `CodeBERT: ${mv.codebert}` : "",
+          mv.codeclassifier ? `Classifier: ${mv.codeclassifier}` : "",
+          analysis.pipeline_version ? `Pipeline: ${analysis.pipeline_version}` : "",
+        ].filter(Boolean).join(" | ");
+        document.getElementById("detailModelVersions").textContent = mvText || (sub.model_version || "");
+
+        document.getElementById("detailModelsGrid").innerHTML = [
+          renderModelCard("ASTNN", analysis.astnn),
+          renderModelCard("CodeBERT", analysis.codebert),
+          renderModelCard("CodeClassifier", analysis.codeclassifier),
+        ].join("");
+
+        const errCard = document.getElementById("detailErrorSummaryCard");
+        if (sub.error_summary) {
+          errCard.style.display = "block";
+          document.getElementById("detailErrorSummary").textContent = sub.error_summary;
+        } else {
+          errCard.style.display = "none";
+        }
+
+        document.getElementById("detailSourceCode").innerHTML = highlightCpp(sub.source_code || "");
+      } catch (err) {
+        showAlert(alertEl, "error", `Failed to load submission detail: ${err.message}`);
+      }
+    }
+
+    function handleRoute() {
+      const hash = window.location.hash || "#ide";
+      const workspaceEl = document.getElementById("workspace");
+      const accountEl = document.getElementById("accountView");
+      const detailEl = document.getElementById("submissionDetailView");
+
+      workspaceEl.style.display = "none";
+      accountEl.classList.remove("active");
+      detailEl.classList.remove("active");
+
+      if (hash === "#account") {
+        accountEl.classList.add("active");
+        loadAccountPage();
+      } else if (hash.startsWith("#submission/")) {
+        const id = hash.slice("#submission/".length);
+        detailEl.classList.add("active");
+        loadSubmissionDetail(id);
+      } else {
+        workspaceEl.style.display = "flex";
+      }
+    }
+
+    window.addEventListener("hashchange", handleRoute);
+
+    // Event bindings for Auth, Account, Modals & History
+    document.getElementById("btnOpenAuth").addEventListener("click", () => openAuthModal("login"));
+    document.getElementById("btnCloseAuthModal").addEventListener("click", closeAuthModal);
+    document.getElementById("tabLoginBtn").addEventListener("click", () => switchAuthTab("login"));
+    document.getElementById("tabRegisterBtn").addEventListener("click", () => switchAuthTab("register"));
+    document.getElementById("linkToRegister").addEventListener("click", (e) => { e.preventDefault(); switchAuthTab("register"); });
+    document.getElementById("linkToLogin").addEventListener("click", (e) => { e.preventDefault(); switchAuthTab("login"); });
+
+    document.getElementById("btnUserMenu").addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.getElementById("userDropdown").classList.toggle("open");
+    });
+    document.addEventListener("click", () => document.getElementById("userDropdown").classList.remove("open"));
+    document.getElementById("btnMenuAccount").addEventListener("click", () => {
+      document.getElementById("userDropdown").classList.remove("open");
+      window.location.hash = "#account";
+    });
+    document.getElementById("btnMenuLogout").addEventListener("click", handleLogout);
+    document.getElementById("btnAccountLogout").addEventListener("click", handleLogout);
+    document.getElementById("btnBackToIdeFromAccount").addEventListener("click", () => { window.location.hash = "#ide"; });
+    document.getElementById("btnBackToIdeFromDetail").addEventListener("click", () => { window.location.hash = "#ide"; });
+    document.getElementById("btnBackToAccount").addEventListener("click", () => { window.location.hash = "#account"; });
+
+    document.getElementById("btnOpenChangePassword").addEventListener("click", () => {
+      showAlert(document.getElementById("changePwdAlert"), "", "");
+      document.getElementById("changePasswordModal").classList.add("open");
+    });
+    document.getElementById("btnCloseChangePwdModal").addEventListener("click", () => {
+      document.getElementById("changePasswordModal").classList.remove("open");
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertEl = document.getElementById("authModalAlert");
+      const btn = document.getElementById("btnLoginSubmit");
+      const identifier = document.getElementById("loginIdentifier").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      if (!identifier || !password) {
+        showAlert(alertEl, "error", "Please enter username/email and password.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Logging in...";
+      try {
+        const res = await fetch(`${AUTH_API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ username: identifier, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showAlert(alertEl, "error", data.error || `Login failed (HTTP ${res.status})`);
+          return;
+        }
+        state.user = data.user;
+        state.csrfToken = data.csrf_token || getCookie("ca_csrf");
+        renderAuthToolbar();
+        closeAuthModal();
+      } catch (err) {
+        showAlert(alertEl, "error", `Network error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Login";
+      }
+    });
+
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertEl = document.getElementById("authModalAlert");
+      const btn = document.getElementById("btnRegisterSubmit");
+      const username = document.getElementById("regUsername").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+      const password = document.getElementById("regPassword").value;
+      const confirm = document.getElementById("regConfirmPassword").value;
+
+      if (password !== confirm) {
+        showAlert(alertEl, "error", "Passwords do not match.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Creating account...";
+      try {
+        const res = await fetch(`${AUTH_API_BASE}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ username, email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showAlert(alertEl, "error", data.error || `Registration failed (HTTP ${res.status})`);
+          return;
+        }
+        switchAuthTab("login");
+        document.getElementById("loginIdentifier").value = username;
+        showAlert(alertEl, "success", "Account created! You can now log in.");
+      } catch (err) {
+        showAlert(alertEl, "error", `Network error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+      }
+    });
+
+    document.getElementById("changePasswordForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertEl = document.getElementById("changePwdAlert");
+      const btn = document.getElementById("btnChangePwdSubmit");
+      const current_password = document.getElementById("curPwd").value;
+      const new_password = document.getElementById("newPwd").value;
+      const confirm = document.getElementById("confirmNewPwd").value;
+
+      if (new_password !== confirm) {
+        showAlert(alertEl, "error", "New passwords do not match.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+      try {
+        const res = await authFetch("/api/auth/change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ current_password, new_password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showAlert(alertEl, "error", data.error || `Failed (HTTP ${res.status})`);
+          return;
+        }
+        document.getElementById("curPwd").value = "";
+        document.getElementById("newPwd").value = "";
+        document.getElementById("confirmNewPwd").value = "";
+        showAlert(alertEl, "success", "Password updated successfully.");
+      } catch (err) {
+        showAlert(alertEl, "error", `Network error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Update Password";
+      }
+    });
+
+    document.getElementById("btnHistRefresh").addEventListener("click", () => { state.historyPage = 1; loadSubmissionHistory(); });
+    document.getElementById("histStatusFilter").addEventListener("change", () => { state.historyPage = 1; loadSubmissionHistory(); });
+    document.getElementById("histSort").addEventListener("change", () => loadSubmissionHistory());
+    document.getElementById("histSearch").addEventListener("input", () => loadSubmissionHistory());
+    document.getElementById("btnHistPrev").addEventListener("click", () => {
+      if (state.historyPage > 1) { state.historyPage--; loadSubmissionHistory(); }
+    });
+    document.getElementById("btnHistNext").addEventListener("click", () => {
+      state.historyPage++; loadSubmissionHistory();
+    });
+
+    // -------------------------------------------------------------------------
     // Initialize App
     // -------------------------------------------------------------------------
     codeEditor.value = starterTemplates["C++"] || "";
     updateEditor();
     loadProblemList();
+    restoreSession();
   </script>
 </body>
 </html>
